@@ -194,5 +194,5 @@ jobs:
           file: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
           body: "Play Happy "
           overwrite: true
-          file_glob: true
+          file_glob: false
           
