@@ -144,7 +144,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: nginx-patch
-          path: /home/runner/work/nginx-patch/nginx-patch/nginx-patch/objs/nginx
+          path: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
           
       # Setting an environment variable
       # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions
@@ -171,6 +171,9 @@ jobs:
         id: step_two
         shell: bash
         run: |
+          echo "ASSET_NAME: "
+          echo "${{ env.ASSET_NAME }}"
+          echo ""
           echo "TAG_NAME: "
           echo "${{ env.TAG_NAME }}"
           echo ""
@@ -190,7 +193,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}          
           tag: ${{ env.TAG_NAME }}
           release_name: ${{ env.RELEASE_NAME }}
-          asset_name: ${{ env.ASSET_NAME_NAME }}
+          asset_name: ${{ env.ASSET_NAME }}
           file: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
           body: "Play Happy "
           overwrite: true
