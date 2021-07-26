@@ -184,18 +184,21 @@ jobs:
           echo ""
           echo "GITHUB_ENV 1: "$GITHUB_ENV
           echo "GITHUB_ENV 2: ${GITHUB_ENV} "
+          echo ""
+          echo "GITHUB_EVENT_NAME is:" $github.event_name
           
           echo "$(tree -d)"
           
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
+        if: github.event_name == 'release'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}          
           tag: ${{ env.TAG_NAME }}
           release_name: ${{ env.RELEASE_NAME }}
           asset_name: ${{ env.ASSET_NAME }}
           file: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
-          body: "### Play Happy
+          body: "### Happy
 
                 - [ ] compile (-static)
 
