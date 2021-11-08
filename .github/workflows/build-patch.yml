@@ -83,11 +83,11 @@ jobs:
           curl -L -o pcre-8.45.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download
           tar xzvf pcre-8.45.tar.gz
                               
-      #- name: Set up GCC
-      #  uses: egor-tensin/setup-gcc@v1
-      #  with:
-      #   version: 11
-      #   platform: x64    
+      - name: Set up GCC
+        uses: egor-tensin/setup-gcc@v1
+        with:
+         version: 9
+         platform: x64    
       
       - name: build
         run: |
