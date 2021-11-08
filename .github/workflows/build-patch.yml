@@ -59,12 +59,6 @@ jobs:
           git submodule update --init --recursive
           cd ..
       
-      - name: Set up GCC
-        uses: egor-tensin/setup-gcc@v1
-        with:
-         version: 11
-         platform: x64
-      
       - name: brotli
         run: |
           git clone https://github.com/google/ngx_brotli.git
