@@ -76,7 +76,7 @@ jobs:
           
       - name: pcre
         run: |
-          curl -L -o pcre-8.45.tar.gz https://ftp.pcre.org/pub/pcre/pcre-8.45.tar.gz
+          curl -L -o pcre-8.45.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download
           tar xzvf pcre-8.45.tar.gz
                               
           
