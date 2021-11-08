@@ -45,7 +45,7 @@ jobs:
         with:
          go-version: ^1.17
          stable: false
-      
+  
       - name: apt
         run: |
           sudo apt-get install curl gnupg2 ca-certificates tree
@@ -58,7 +58,7 @@ jobs:
           git pull
           git submodule update --init --recursive
           cd ..
-      
+          
       - name: brotli
         run: |
           git clone https://github.com/google/ngx_brotli.git
