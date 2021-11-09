@@ -45,7 +45,10 @@ jobs:
         with:
          go-version: ^1.17
          stable: false
-        run: go version
+         
+      - name: Go version
+        run:  |
+         go version
          
       - name: Set up GCC
         uses: egor-tensin/setup-gcc@v1
