@@ -143,8 +143,9 @@ jobs:
             --with-openssl-opt='enable-tls1_3 zlib' \
             --with-pcre=../pcre-8.45 --with-pcre-jit \
             --with-zlib=../zlib-cf \
-            --with-http_v2_hpack_enc 
-        
+            --with-http_v2_hpack_enc \
+            --add-module=../ngx_brotli \
+            --with-cc-opt='-Wno-vla-parameter'
             # --with-cc-opt='-static -static-libgcc' \
             # --with-ld-opt='-static'
         
