@@ -145,7 +145,8 @@ jobs:
             --with-pcre=../pcre-8.45 --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-http_v2_hpack_enc \
-            --with-cc-opt='-Wno-vla-parameter'
+            --with-cc-opt='-static -static-libgcc -Wno-vla-parameter' \
+            --with-ld-opt='-static'
             # --with-cc-opt='-static -static-libgcc' \
             # --with-ld-opt='-static'
         
