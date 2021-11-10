@@ -38,7 +38,10 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: depend
         run: |
-          sudo apt-get install build-essential ca-certificates zlib1g-dev libpcre3 libpcre3-dev tar unzip libssl-dev wget curl git cmake ninja-build golang
+          sudo apt-get update
+          sudo apt-get upgrade 
+          sudo apt-get install build-essential ca-certificates zlib1g-dev libpcre3 libpcre3-dev tar unzip libssl-dev wget curl git cmake ninja-build gnupg2 lsb-release libunwind-dev
+          sudo apt-get install tree
           
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.4
@@ -53,13 +56,9 @@ jobs:
       - name: Set up GCC
         uses: egor-tensin/setup-gcc@v1
         with:
-         version: 10
+         version: 11
          platform: x64    
-      
-      - name: apt
-        run: |
-          sudo apt-get install curl gnupg2 ca-certificates tree
-      
+            
       - name: openssl-3.0.0
         run: |
           git clone https://github.com/openssl/openssl.git
@@ -145,11 +144,11 @@ jobs:
             --with-openssl-opt='enable-tls1_3 zlib' \
             --with-pcre=../pcre-8.45 --with-pcre-jit \
             --with-zlib=../zlib-cf \
-            --with-http_v2_hpack_enc \
-            --with-cc-opt='-static -static-libgcc' \
-            --with-ld-opt='-static'
+            --with-http_v2_hpack_enc 
+        
+        #    --with-cc-opt='-static -static-libgcc' \
+        #    --with-ld-opt='-static'
           make -j$(nproc --all)
-          # make
           echo ""
           echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
           echo ""
