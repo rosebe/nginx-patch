@@ -145,8 +145,9 @@ jobs:
             --with-pcre=../pcre-8.45 --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-http_v2_hpack_enc \ 
-            --with-cc-opt='-Wno-vla-parameter' \
-            --with-ld-opt='-static'
+            --with-cc-opt='-Wno-vla-parameter' 
+            
+            # --with-ld-opt='-static'
           
           make -j$(nproc --all)
           echo ""
