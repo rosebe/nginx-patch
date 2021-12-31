@@ -92,6 +92,11 @@ jobs:
         run: |
           curl -L -o pcre-8.45.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download
           tar xzvf pcre-8.45.tar.gz
+          
+      - name: pcre2
+        run: |
+          wget https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.tar.gz
+          tar xzvf pcre2-10.39.tar.gz
       
       - name: build
         run: |
@@ -143,7 +148,7 @@ jobs:
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
             --with-openssl-opt='enable-tls1_3 zlib' \
-            --with-pcre=../pcre-8.45 --with-pcre-jit \
+            --with-pcre=../pcre2-10.39 --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-http_v2_hpack_enc \
             --with-cc-opt='-static -static-libgcc' \
