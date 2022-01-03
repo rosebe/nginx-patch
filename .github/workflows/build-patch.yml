@@ -33,7 +33,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.4.0
       
       # Runs a set of commands using the runners shell
       - name: depend
@@ -44,7 +44,7 @@ jobs:
           sudo apt-get install tree
           
       - name: Setup Go environment
-        uses: actions/setup-go@v2.1.4
+        uses: actions/setup-go@v2.1.5
         with:
          go-version: ^1.17
          stable: false
@@ -95,9 +95,13 @@ jobs:
           
       - name: pcre2
         run: |
-          wget https://github.com/PhilipHazel/pcre2/releases/download/pcre2-10.39/pcre2-10.39.tar.gz
-          tar xzvf pcre2-10.39.tar.gz
-      
+          git clone https://github.com/PhilipHazel/pcre2.git 
+          cd pcre2
+          git checkout .
+          git pull
+          ./autogen.sh
+          cd ..
+                
       - name: build
         run: |
           git clone https://github.com/nginx/nginx.git
@@ -148,7 +152,7 @@ jobs:
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
             --with-openssl-opt='enable-tls1_3 zlib' \
-            --with-pcre=../pcre2-10.39 --with-pcre-jit \
+            --with-pcre=../pcre2 --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-http_v2_hpack_enc \
             --with-cc-opt='-static -static-libgcc' \
@@ -160,7 +164,7 @@ jobs:
           echo ""
           tree -d
           
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v2.3.1
         with:
           name: nginx-patch
           path: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
