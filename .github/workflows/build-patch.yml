@@ -36,12 +36,14 @@ jobs:
       - uses: actions/checkout@v2.4.0
       
       # Runs a set of commands using the runners shell
-      - name: depend
+      - name: Runtime depend 
         run: |
           sudo apt-get update
           sudo apt-get upgrade 
-          sudo apt-get install build-essential ca-certificates zlib1g-dev libpcre3 libpcre3-dev tar unzip libssl-dev wget curl git cmake ninja-build gnupg2 lsb-release libunwind-dev
-          sudo apt-get install tree
+          sudo apt-get install build-essential ca-certificates \
+                               zlib1g-dev libpcre3 libpcre3-dev libssl-dev \
+                               git cmake ninja-build gnupg2 lsb-release libunwind-dev \
+                               tar unzip  wget curl tree
           
       - name: Setup Go environment
         uses: actions/setup-go@v2.1.5
@@ -53,7 +55,7 @@ jobs:
         run:  |
          go version
          
-      - name: Set up GCC
+      - name: Setup GCC environment
         uses: egor-tensin/setup-gcc@v1
         with:
          version: 11
@@ -87,12 +89,7 @@ jobs:
           git pull
           git submodule update --init --recursive
           cd ..
-          
-      - name: pcre
-        run: |
-          curl -L -o pcre-8.45.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download
-          tar xzvf pcre-8.45.tar.gz
-          
+      
       - name: pcre2
         run: |
           git clone https://github.com/PhilipHazel/pcre2.git 
