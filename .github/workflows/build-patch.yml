@@ -210,20 +210,23 @@ jobs:
           echo "$(tree -d)"
           
       - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@v2.3.0
         if: github.event_name == 'release'
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}          
+          repo_token: ${{ github.token }}          
           tag: ${{ env.TAG_NAME }}
           release_name: ${{ env.RELEASE_NAME }}
           asset_name: ${{ env.ASSET_NAME }}
           file: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
-          body: "### Happy
-
+          body: "### Happy play for CentOS 6.X
                 - [ ] compile (-static)
+                
+                `>  ldd nginx-patch-static.v1.23.x.build.on.2022_x_x-x.x.x` 
+                `>  not a dynamic executable`
 
-                `>\  ldd nginx-patch-static.v1.21.1.build.on.2021_x_x-x.x.x`
-                `>\  not a dynamic executable`"
+                - [ ] nginx configer 
+                `>  nginx -V`"
+                
           overwrite: true
           file_glob: false
           
