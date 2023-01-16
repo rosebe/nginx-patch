@@ -56,7 +56,7 @@ jobs:
          go version
          
       - name: Setup GCC environment
-        uses: egor-tensin/setup-gcc@v1
+        uses: egor-tensin/setup-gcc@v1.3
         with:
          version: 12
          platform: x64    
