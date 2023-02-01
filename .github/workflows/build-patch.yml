@@ -222,7 +222,7 @@ jobs:
 
                 - [ ] compile (-static)
                 
-                `>  ldd nginx-patch-static.v1.23.x.build.on.2022_x_x-x.x.x` 
+                `>  ldd nginx-patch-static.v1.23.x.build.on.2023_x_x-x.x.x` 
                 `>  not a dynamic executable`
 
                 - [ ] nginx configer 
