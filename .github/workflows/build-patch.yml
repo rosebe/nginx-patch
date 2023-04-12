@@ -223,9 +223,11 @@ jobs:
                 - [ ] compile (-static)
                 
                 `>  ldd nginx-patch-static.v1.23.x.build.on.2023_x_x-x.x.x` 
+                
                 `>  not a dynamic executable`
 
                 - [ ] nginx configer 
+                
                 `>  nginx -V`"
                 
           overwrite: true
