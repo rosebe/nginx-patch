@@ -101,7 +101,7 @@ jobs:
                 
       - name: build
         run: |
-          git clone https://github.com/nginx/nginx.git
+          git clone -b branches/stable-1.24 https://github.com/nginx/nginx.git
           cd nginx
           wget https://raw.githubusercontent.com/rosebe/patch/master/nginx.patch
           patch -p1 < nginx.patch
@@ -211,7 +211,7 @@ jobs:
           
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@2.5.0
-        if: github.event_name == 'release'
+      # if: github.event_name == 'release'
         with:
           repo_token: ${{ github.token }}          
           tag: ${{ env.TAG_NAME }}
@@ -222,7 +222,8 @@ jobs:
 
                 - [ ] compile (-static)
                 
-                `>  ldd nginx-patch-static.v1.23.x.build.on.2023_x_x-x.x.x` 
+                `>  ldd nginx-patch-static.v1.24.x.build.on.2023_x_x-x.x.x` 
+                
                 `>  not a dynamic executable`
 
                 - [ ] nginx configer 
