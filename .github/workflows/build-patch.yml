@@ -227,6 +227,7 @@ jobs:
                 `>  not a dynamic executable`
 
                 - [ ] nginx configer 
+                
                 `>  nginx -V`"
                 
           overwrite: true
