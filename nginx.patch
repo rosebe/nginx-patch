@@ -1,8 +1,7 @@
 Add HTTP2 HPACK Encoding Support.
 Add Dynamic TLS Record support.
 
-Using: patch -p1 < nginx.patch
-
+Using => patch -p1 < nginx.patch
 
 diff -urNa a/auto/modules b/auto/modules
 --- a/auto/modules	2022-05-31 15:05:22.000000000 +0800
