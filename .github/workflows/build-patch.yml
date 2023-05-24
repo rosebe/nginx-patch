@@ -103,8 +103,15 @@ jobs:
         run: |
           git clone https://github.com/nginx/nginx.git
           cd nginx
-          wget https://raw.githubusercontent.com/rosebe/patch/master/nginx.patch
+          
+          cp ../nginx.patch ./nginx.patch
           patch -p1 < nginx.patch
+          
+          cp ../option.patch ./option.patch
+          patch -p1 < option.patch
+          
+          #wget https://raw.githubusercontent.com/rosebe/patch/master/nginx.patch
+          #patch -p1 < nginx.patch
           
           ./auto/configure \
             --prefix=/etc/nginx \
