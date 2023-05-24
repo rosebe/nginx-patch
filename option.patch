@@ -1,5 +1,5 @@
-Add HTTP2 HPACK Encoding Support for nginx-quic.
-Add Dynamic TLS Record support for nginx-quic.
+Add HTTP2 HPACK Encoding Support.
+Add Dynamic TLS Record support.
 
 Using: patch -p1 < option.patch
 
