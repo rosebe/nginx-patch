@@ -161,7 +161,6 @@ jobs:
             --with-openssl-opt='enable-tls1_3 zlib' \
             --with-pcre=../pcre2 --with-pcre-jit \
             --with-zlib=../zlib-cf \
-            --with-http_v2_hpack_enc \
             --with-cc-opt='-static -static-libgcc' \
             --with-ld-opt='-static'
             
