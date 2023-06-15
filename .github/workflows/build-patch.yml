@@ -104,11 +104,14 @@ jobs:
           git clone https://github.com/nginx/nginx.git
           cd nginx
           
-          cp ../nginx.patch ./nginx.patch
-          patch -p1 < nginx.patch
+          cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
+          patch -p1 < nginx_dynamic_tls_records.patch
           
-          cp ../option.patch ./option.patch
-          patch -p1 < option.patch
+          #cp ../nginx.patch ./nginx.patch
+          #patch -p1 < nginx.patch
+          
+          #cp ../option.patch ./option.patch
+          #patch -p1 < option.patch
           
           #wget https://raw.githubusercontent.com/rosebe/patch/master/nginx.patch
           #patch -p1 < nginx.patch
