@@ -162,7 +162,7 @@ jobs:
             --with-pcre=../pcre2 --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
-            --with-ld-opt='-static'
+            --with-ld-opt='-Bstatic'
             
           make -j$(nproc --all)
           echo ""
