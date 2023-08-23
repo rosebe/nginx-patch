@@ -69,8 +69,10 @@ jobs:
           git submodule update --init --recursive
           cd deps
           rm -rf brotli
-          git clone -b 0f2157cc5e7f https://github.com/google/brotli.git
-          cd ../..
+          git clone https://github.com/google/brotli.git
+          cd brotli
+          git reset --hard 0f2157cc5e7f
+          cd ../../..
                
       - name: zlib-cf
         run: |
