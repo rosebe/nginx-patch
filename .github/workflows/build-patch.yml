@@ -77,8 +77,8 @@ jobs:
           git checkout .
           git pull
           git submodule update --init --recursive
-        # git submodule update --remote
-        # cd ..
+          # git submodule update --remote
+          # cd ..
           cd deps
           rm -rf brotli
           git clone https://github.com/google/brotli.git
