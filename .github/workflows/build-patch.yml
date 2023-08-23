@@ -43,7 +43,7 @@ jobs:
           sudo apt-get install build-essential ca-certificates \
                                zlib1g-dev libpcre3 libpcre3-dev libssl-dev \
                                git cmake ninja-build gnupg2 lsb-release libunwind-dev \
-                               tar unzip  wget curl tree
+                               tar unzip  wget curl tree perl-base
           
       - name: Setup Go environment
         uses: actions/setup-go@v4.0.1
@@ -77,8 +77,14 @@ jobs:
           git checkout .
           git pull
           git submodule update --init --recursive
-          git submodule update --remote
-          cd ..
+        # git submodule update --remote
+        # cd ..
+          cd deps
+          rm -rf brotli
+          git clone https://github.com/google/brotli.git
+          cd brotli
+          git reset --hard 0f2157cc5e7f
+          cd ../../..
           
       - name: zlib-cf
         run: |
@@ -158,11 +164,11 @@ jobs:
             --with-stream_ssl_preread_module \
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
-            --with-openssl-opt='enable-tls1_3 zlib' \
+            --with-openssl-opt='no-shared enable-tls1_3 zlib' \
             --with-pcre=../pcre2 --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
-            --with-ld-opt='-Bstatic'
+            --with-ld-opt='-static'
             
           make -j$(nproc --all)
           echo ""
@@ -219,7 +225,7 @@ jobs:
           echo "$(tree -d)"
           
       - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@2.6.1
+        uses: svenstaro/upload-release-action@2.7.0
         if: github.event_name == 'release'
         with:
           repo_token: ${{ github.token }}          
