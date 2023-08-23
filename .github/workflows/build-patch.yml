@@ -71,7 +71,7 @@ jobs:
           rm -rf brotli
           git clone https://github.com/google/brotli.git
           cd brotli
-          git reset --hard 0f2157cc5e7f
+          git reset --hard a560089
           cd ../../..
                
       - name: zlib-cf
