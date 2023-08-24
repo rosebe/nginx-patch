@@ -165,7 +165,7 @@ jobs:
             --with-stream_ssl_preread_module \
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
-            --with-openssl-opt='no-shared enable-tls1_3 zlib' \
+            --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
