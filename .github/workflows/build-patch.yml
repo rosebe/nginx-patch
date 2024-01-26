@@ -5,14 +5,14 @@ name: build nginx-patch
 # Controls when the action will run. 
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
-  push:
-    branches:
-      - main
-      - b*
-  pull_request:
-    branches:
-      - main
-      - b*
+  #push:
+    #branches:
+      #- main
+      #- b*
+  #pull_request:
+    #branches:
+      #- main
+      #- b*
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -82,7 +82,7 @@ jobs:
           cd deps
           rm -rf brotli
           #git clone https://github.com/google/brotli.git
-          git clone -b brotli-fix https://github.com/rosebe/brotli.git
+          git clone -b brotli-fix-1 https://github.com/rosebe/brotli.git
           cd brotli
           # Commits on Jul 28, 2023
           #git reset --hard 0300be36ba019c55d2edc48353270fa18008d49c
@@ -228,7 +228,7 @@ jobs:
           
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@2.7.0
-        if: github.event_name == 'release'
+        #if: github.event_name == 'release'
         with:
           repo_token: ${{ github.token }}          
           tag: ${{ env.TAG_NAME }}
