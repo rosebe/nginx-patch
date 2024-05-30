@@ -239,7 +239,7 @@ jobs:
 
                 - [ ] compile (-static)
                 
-                `>  ldd nginx-patch-static.v1.25.x.build.on.202x_x_x-x.x.x` 
+                `>  ldd nginx-patch-static.v1.2x.x.build.on.202x_x_x-x.x.x` 
                 
                 `>  not a dynamic executable`
 
