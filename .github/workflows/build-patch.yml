@@ -111,7 +111,7 @@ jobs:
         run: |
           git clone https://github.com/nginx/nginx.git
           cd nginx
-          git reset --hard a4100450c067009158299ad69adb7d6f5e775943
+          #git reset --hard a4100450c067009158299ad69adb7d6f5e775943
           
           cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
           patch -p1 < nginx_dynamic_tls_records.patch
@@ -190,9 +190,9 @@ jobs:
         id: step_one
         shell: bash
         run: |
-          echo "ASSET_NAME=nginx-patch-static v$(cat /home/runner/work/nginx-patch/nginx-patch/nginx/.hgtags | tail -n 1 | awk '{print $2}' | awk -F- '{print $2}') build on $(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
-          echo "TAG_NAME=v$(cat /home/runner/work/nginx-patch/nginx-patch/nginx/.hgtags | tail -n 1 | awk '{print $2}' | awk -F- '{print $2}')" >> $GITHUB_ENV
-          echo "RELEASE_NAME=nginx-patch v$(cat /home/runner/work/nginx-patch/nginx-patch/nginx/.hgtags | tail -n 1 | awk '{print $2}' | awk -F- '{print $2}')" >> $GITHUB_ENV
+          echo "ASSET_NAME=nginx-patch-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') build on $(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
+          echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          echo "RELEASE_NAME=nginx-patch v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           
           echo "TAG_NAME: "
           echo "${{ env.TAG_NAME }}"
