@@ -100,7 +100,7 @@ jobs:
           #git checkout .
           #git pull
           ./autogen.sh
-          ./configure --enable-jit=auto
+          #./configure --enable-jit=auto
           #make
           cd ..
                 
