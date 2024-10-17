@@ -5,14 +5,14 @@ name: build nginx-patch
 # Controls when the action will run. 
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
-  push:
-    branches:
-      - main
-      - b*
-  pull_request:
-    branches:
-      - main
-      - b*
+  #push:
+    #branches:
+      #- main
+      #- b*
+  #pull_request:
+    #branches:
+      #- main
+      #- b*
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -55,39 +55,34 @@ jobs:
         #run:  |
          #go version
          
-      - name: Setup GCC environment
-        uses: egor-tensin/setup-gcc@v1.3
-        with:
-         version: 12
-         platform: x64    
+      #- name: Setup GCC environment
+        #uses: egor-tensin/setup-gcc@v1.3
+        #with:
+         #version: 12
+         #platform: x64    
             
       - name: openssl-3.0.0
         run: |
-          git clone https://github.com/openssl/openssl.git
-          cd openssl
-          git checkout .
-          git pull
-          git submodule update --init --recursive
-          cd ..
+          git clone --recurse-submodules https://github.com/openssl/openssl.git
+          #mkdir openssl/build
+          #cd openssl/build
+          #sudo ../Configure
+          #sudo make
+          #sudo make install
+          ##sudo ldconfig /usr/local/lib64
+          #sudo ldconfig
+          #cd ../..
+          ##openssl version -d
           
       - name: brotli
         run: |
-          git clone https://github.com/google/ngx_brotli.git
-          cd ngx_brotli
-          git checkout .
-          git pull
-          git submodule update --init --recursive
-          # git submodule update --remote
-          # cd ..
-          cd deps
-          rm -rf brotli
-          #git clone https://github.com/google/brotli.git
-          git clone -b brotli-fix https://github.com/rosebe/brotli.git
-          cd brotli
-          # Commits on Jul 28, 2023
-          #git reset --hard 0300be36ba019c55d2edc48353270fa18008d49c
-          cd ../../..
-          
+          git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli
+          cd ngx_brotli/deps/brotli
+          mkdir out && cd out
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-Ofast -m64 -march=native -mtune=native -flto -funroll-loops -ffunction-sections -fdata-sections -Wl,--gc-sections" -DCMAKE_CXX_FLAGS="-Ofast -m64 -march=native -mtune=native -flto -funroll-loops -ffunction-sections -fdata-sections -Wl,--gc-sections" -DCMAKE_INSTALL_PREFIX=./installed ..
+          cmake --build . --config Release --target brotlienc
+          cd ../../../..
+                              
       - name: zlib-cf
         run: |
           git clone -b gcc.amd64  https://github.com/cloudflare/zlib.git zlib-cf
@@ -100,17 +95,20 @@ jobs:
       
       - name: pcre2
         run: |
-          git clone https://github.com/PhilipHazel/pcre2.git 
+          git clone https://github.com/PCRE2Project/pcre2.git
           cd pcre2
-          git checkout .
-          git pull
+          #git checkout .
+          #git pull
           ./autogen.sh
+          ./configure --enable-jit=auto
+          #make
           cd ..
                 
       - name: build
         run: |
           git clone https://github.com/nginx/nginx.git
           cd nginx
+          #git reset --hard a4100450c067009158299ad69adb7d6f5e775943
           
           cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
           patch -p1 < nginx_dynamic_tls_records.patch
@@ -167,7 +165,7 @@ jobs:
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
-            --with-pcre=../pcre2 --with-pcre-jit \
+            --with-pcre=../pcre2 \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
             --with-ld-opt='-static'
@@ -189,9 +187,9 @@ jobs:
         id: step_one
         shell: bash
         run: |
-          echo "ASSET_NAME=nginx-patch-static v$(cat /home/runner/work/nginx-patch/nginx-patch/nginx/.hgtags | tail -n 1 | awk '{print $2}' | awk -F- '{print $2}') build on $(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
-          echo "TAG_NAME=v$(cat /home/runner/work/nginx-patch/nginx-patch/nginx/.hgtags | tail -n 1 | awk '{print $2}' | awk -F- '{print $2}')" >> $GITHUB_ENV
-          echo "RELEASE_NAME=nginx-patch v$(cat /home/runner/work/nginx-patch/nginx-patch/nginx/.hgtags | tail -n 1 | awk '{print $2}' | awk -F- '{print $2}')" >> $GITHUB_ENV
+          echo "ASSET_NAME=nginx-patch-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') build on $(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
+          echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          echo "RELEASE_NAME=nginx-patch v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           
           echo "TAG_NAME: "
           echo "${{ env.TAG_NAME }}"
@@ -227,8 +225,8 @@ jobs:
           echo "$(tree -d)"
           
       - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@2.9.0
-        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@1b2bf5c959aebf44ffded0b72f8bdc5737400da1
+        #if: github.event_name == 'release'
         with:
           repo_token: ${{ github.token }}          
           tag: ${{ env.TAG_NAME }}
@@ -239,7 +237,7 @@ jobs:
 
                 - [ ] compile (-static)
                 
-                `>  ldd nginx-patch-static.v1.25.x.build.on.2023_x_x-x.x.x` 
+                `>  ldd nginx-patch-static.v1.2x.x.build.on.202x_x_x-x.x.x` 
                 
                 `>  not a dynamic executable`
 
