@@ -113,7 +113,8 @@ jobs:
           sudo ldconfig /usr/local/lib
           
           cd ..
-                
+          pcre2-config --version
+          
       - name: build
         run: |
           git clone https://github.com/nginx/nginx.git
