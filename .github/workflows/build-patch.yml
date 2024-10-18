@@ -95,6 +95,9 @@ jobs:
       
       - name: pcre2
         run: |
+          echo "PCRE2_Version: "
+          pcre2-config --version
+          echo ""
           git clone --recurse-submodules https://github.com/PCRE2Project/pcre2.git
           cd pcre2
           #git checkout .
@@ -113,7 +116,9 @@ jobs:
           sudo ldconfig /usr/local/lib
           
           cd ..
+          echo "PCRE2_Version: "
           pcre2-config --version
+          echo ""
           
       - name: build
         run: |
