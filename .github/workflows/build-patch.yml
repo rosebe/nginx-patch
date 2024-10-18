@@ -175,7 +175,7 @@ jobs:
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
-            --with-pcre=../pcre2 \            
+            --with-pcre=../pcre2 \
             --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
