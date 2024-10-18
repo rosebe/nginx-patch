@@ -177,7 +177,6 @@ jobs:
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
-            --with-pcre-opt='enable-pcre2-16 enable-pcre2-32' \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
             --with-ld-opt='-static'
