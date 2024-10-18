@@ -166,7 +166,6 @@ jobs:
             --with-openssl=../openssl \
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
-            --with-pcre-opt='enable-jit=auto' \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
             --with-ld-opt='-static'
