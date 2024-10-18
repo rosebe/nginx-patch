@@ -100,8 +100,18 @@ jobs:
           #git checkout .
           #git pull
           ./autogen.sh
-          #./configure --enable-jit=auto
-          #make
+          
+          #./configure --enable-jit=auto --enable-pcre2-16 --enable-pcre2-32
+          ./configure --enable-jit --enable-pcre2-16 --enable-pcre2-32
+          sudo make -j$(nproc --all)
+          sudo make install
+          
+          #export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
+          #sudo ldconfig
+          
+          sudo ldconfig /usr/local/lib64
+          sudo ldconfig /usr/local/lib
+          
           cd ..
                 
       - name: build
