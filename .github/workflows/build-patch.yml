@@ -103,14 +103,14 @@ jobs:
           
           #./configure --enable-jit=auto --enable-pcre2-16 --enable-pcre2-32
           ./configure --enable-jit --enable-pcre2-16 --enable-pcre2-32
-          #sudo make -j$(nproc --all)
-          #sudo make install
+          sudo make -j$(nproc --all)
+          sudo make install
           
           ##export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
           ##sudo ldconfig
           
-          #sudo ldconfig /usr/local/lib64
-          #sudo ldconfig /usr/local/lib
+          sudo ldconfig /usr/local/lib64
+          sudo ldconfig /usr/local/lib
           
           cd ..
                 
@@ -175,9 +175,7 @@ jobs:
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
-            --with-pcre=../pcre2 \
-            --with-pcre-opt='enable-pcre2-16 enable-pcre2-32' \
-            --with-pcre-jit \
+            --with-pcre \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc' \
             --with-ld-opt='-static'
