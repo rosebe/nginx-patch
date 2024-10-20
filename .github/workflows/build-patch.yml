@@ -178,7 +178,7 @@ jobs:
             --with-pcre=../pcre2 \
             --with-zlib=../zlib-cf \
             --with-cc-opt='-static -static-libgcc -I ../pcre2/src' \
-            --with-ld-opt='-static -lm ../pcre2/.libs/libpcre2-8.a'
+            --with-ld-opt='-static -L ../pcre2/.libs'
             
           make -j$(nproc --all)
           echo ""
