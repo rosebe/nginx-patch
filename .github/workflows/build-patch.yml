@@ -102,8 +102,8 @@ jobs:
           ./autogen.sh
           
           #./configure --enable-jit=auto --enable-pcre2-16 --enable-pcre2-32
-          #./configure --enable-jit --enable-pcre2-16 --enable-pcre2-32
-          #sudo make -j$(nproc --all)
+          ./configure --enable-jit --enable-pcre2-8 --enable-pcre2-16 --enable-pcre2-32
+          sudo make -j$(nproc --all)
           #sudo make install
           
           ##export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
@@ -177,8 +177,8 @@ jobs:
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
             --with-zlib=../zlib-cf \
-            --with-cc-opt='-O2 -static -static-libgcc' \
-            --with-ld-opt='-static'
+            --with-cc-opt='-static -static-libgcc -I ../pcre2/src' \
+            --with-ld-opt='-static -lm ../pcre2/.libs/libpcre2-8.a'
             
           make -j$(nproc --all)
           echo ""
