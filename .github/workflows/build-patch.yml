@@ -237,7 +237,8 @@ jobs:
           echo "$(tree -d)"
           
       - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@e2a63377780a8bacc68dcac9b0979ee20ad5a791
+        #uses: svenstaro/upload-release-action@e2a63377780a8bacc68dcac9b0979ee20ad5a791
+        uses: svenstaro/upload-release-action@v2.8.0
         #if: github.event_name == 'release'
         with:
           repo_token: ${{ github.token }}          
