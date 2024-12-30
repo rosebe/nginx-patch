@@ -5,12 +5,11 @@
 
 version: 2
 updates:
+  #- package-ecosystem: "gomod"
+    #directory: "/" # Location of package manifests
+    #schedule:
+      #interval: "daily"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      #day: "sunday"
-      #time: "03:00"
-      ## Use China Standard Time (UTC +03:00)
-      #timezone: "Asia/Shanghai"
-      
+      interval: "daily"
