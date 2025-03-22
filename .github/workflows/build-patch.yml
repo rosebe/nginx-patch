@@ -188,7 +188,7 @@ jobs:
           echo ""
           tree -d
           
-      - uses: actions/upload-artifact@v4.6.1
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: nginx-patch
           path: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
