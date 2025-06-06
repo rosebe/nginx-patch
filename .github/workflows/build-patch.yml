@@ -178,7 +178,7 @@ jobs:
             --with-pcre=../pcre2 \
             --with-pcre-jit \
             --with-zlib=../zlib-cf \
-            --build=" Rosebe Add patch: Dynamic TLS Record support. And build on $(date +%Y_%m_%d-%H:%M:%S) " \
+            --build=" Commit ID: $(git rev-parse --short HEAD). Rosebe Add patch: Dynamic TLS Record support. And build on $(date +%Y_%m_%d-%H:%M:%S) " \
             --with-cc-opt='-static -static-libgcc' \
             --with-ld-opt='-static'
             
