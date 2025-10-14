@@ -121,8 +121,10 @@ jobs:
           cd nginx
           #git reset --hard a4100450c067009158299ad69adb7d6f5e775943
           
-          cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
-          patch -p1 < nginx_dynamic_tls_records.patch
+          curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
+          
+          #cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
+          #patch --verbose -p1 < nginx_dynamic_tls_records.patch
           
           #cp ../nginx.patch ./nginx.patch
           #patch -p1 < nginx.patch
