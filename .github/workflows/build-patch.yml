@@ -119,6 +119,7 @@ jobs:
         run: |
           git clone https://github.com/nginx/nginx.git
           cd nginx
+          echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
           #git reset --hard a4100450c067009158299ad69adb7d6f5e775943
           
           curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
@@ -184,7 +185,7 @@ jobs:
             --build="Commit ID: $(git rev-parse --short HEAD). Rosebe Add patch: Dynamic TLS Record support. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
             --with-cc-opt='-static -static-libgcc' \
             --with-ld-opt='-static'
-            
+
           make -j$(nproc --all)
           echo ""
           echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
@@ -202,7 +203,7 @@ jobs:
         id: step_one
         shell: bash
         run: |
-          echo "ASSET_NAME=nginx-patch-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') build on $(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
+          echo "ASSET_NAME=nginx-patch-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} build on $(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
           echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           echo "RELEASE_NAME=nginx-patch v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           
