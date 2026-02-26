@@ -44,7 +44,7 @@ jobs:
           sudo apt-get install build-essential ca-certificates \
                                zlib1g-dev libpcre3 libpcre3-dev libssl-dev \
                                git cmake ninja-build gnupg2 lsb-release libunwind-dev \
-                               tar unzip  wget curl tree perl-base
+                               tar unzip  wget curl tree perl-base zlib1g-dev libc6-dev
           
       #- name: Setup Go environment
         #uses: actions/setup-go@v4.0.1
@@ -183,7 +183,7 @@ jobs:
             --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --build="Commit ID: $(git rev-parse --short HEAD). Rosebe Add patch: Dynamic TLS Record support. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-static -static-libgcc -Wno-error' \
+            --with-cc-opt='-static -static-libgcc -Wno-error=incomplete-set-element' \
             --with-ld-opt='-static'
 
           make -j$(nproc --all)
