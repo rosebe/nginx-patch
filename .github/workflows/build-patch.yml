@@ -183,8 +183,9 @@ jobs:
             --with-pcre-jit \
             --with-zlib=../zlib-cf \
             --build="Commit ID: $(git rev-parse --short HEAD). Rosebe Add patch: Dynamic TLS Record support. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-static -static-libgcc -Wno-error=incomplete-set-element' \
-            --with-ld-opt='-static'
+            --with-ld-opt='-static' \
+            --with-cc-opt='-static -static-libgcc -Wno-error=incomplete-set-element'
+            
 
           make -j$(nproc --all)
           echo ""
