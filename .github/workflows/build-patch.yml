@@ -65,7 +65,7 @@ jobs:
       - name: openssl-3.0.0
         run: |
           #git clone --recurse-submodules https://github.com/openssl/openssl.git
-          git clone --recurse-submodules -b openssl-3.4.0 --depth 1 https://github.com/openssl/openssl.git
+          git clone --recurse-submodules -b openssl-3.6 --depth 1 https://github.com/openssl/openssl.git
           
           #mkdir openssl/build
           #cd openssl/build
