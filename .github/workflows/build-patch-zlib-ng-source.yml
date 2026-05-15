@@ -154,6 +154,10 @@ jobs:
           cd ..
                 
       - name: build
+        env:
+          CC: musl-gcc
+          CXX: musl-gcc
+        
         run: |
           git clone https://github.com/nginx/nginx.git
           cd nginx
@@ -176,11 +180,16 @@ jobs:
           #patch -p1 < nginx.patch
           
           # 1. 设置 musl 编译器环境
-          export CC=musl-gcc
-          export CXX=musl-gcc
+          #export CC=musl-gcc
+          #export CXX=musl-gcc
           
+          # 强制清理之前可能残留的缓存
+          make clean || true
+          rm -rf objs/
+
           
           ./auto/configure \
+            --with-cc=musl-gcc \
             --prefix=/etc/nginx \
             --sbin-path=/usr/sbin/nginx \
             --modules-path=/usr/lib64/nginx/modules \
@@ -197,7 +206,6 @@ jobs:
             --user=nginx \
             --group=nginx \
             --with-compat \
-            --with-file-aio \
             --with-threads \
             --with-http_addition_module \
             --with-http_auth_request_module \
@@ -243,6 +251,8 @@ jobs:
       - name: Verify
         run: |
           # 验证是否为静态链接
+          # 验证生成的二进制文件是否为“纯静态”
+          echo "==== 验证二进制文件状态 ===="
           file objs/nginx
           ldd objs/nginx || echo "Static binary confirmed"
             
