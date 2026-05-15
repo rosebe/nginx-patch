@@ -63,7 +63,8 @@ jobs:
          
       - name: Install musl toolchain
         run: |
-          sudo apt-get install -y musl-tools linux-libc-dev
+          #sudo apt-get install -y musl-tools linux-libc-dev
+          sudo apt-get install -y musl-tools
       
       #- name: Setup GCC environment
         #uses: egor-tensin/setup-gcc@v2.0
