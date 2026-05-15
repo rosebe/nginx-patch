@@ -115,7 +115,10 @@ jobs:
           #git submodule update --init --recursive
           #cd ..
       
-      - name: zlib-ng
+      - name: zlib-ng [Pre-configure zlib-ng for Musl]
+        env:
+          CC: musl-gcc
+          CXX: musl-gcc
         run: |
           #git clone --branch develop https://github.com/zlib-ng/zlib-ng.git
           git clone https://github.com/zlib-ng/zlib-ng.git
@@ -125,7 +128,8 @@ jobs:
           #sed -i 's/compat=0/compat=1/g' configure
           
           # 核心注入：必须开启兼容模式，且伪装成原生配置脚本
-          ./configure --zlib-compat
+          #./configure --zlib-compat
+          ./configure --static --zlib-compat
           
           #make -j$(nproc --all)
           cd ..
@@ -233,10 +237,11 @@ jobs:
             --with-stream_ssl_preread_module \
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
-            --with-openssl-opt='no-shared no-comp enable-tls1_3 no-secure-memory' \
+            --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
             --with-zlib=../zlib-ng \
+            --with-zlib-opt='--static --zlib-compat' \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng-source. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
             --with-cc-opt='-static -O2' \
             --with-ld-opt='-static'
