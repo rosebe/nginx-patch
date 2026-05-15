@@ -61,6 +61,11 @@ jobs:
         #run:  |
          #go version
          
+      - name: Install musl toolchain
+        run: |
+          sudo apt-get install -y musl-tools
+
+      
       - name: Setup GCC environment
         uses: egor-tensin/setup-gcc@v2.0
         with:
@@ -217,7 +222,8 @@ jobs:
             --with-pcre-jit \
             --with-zlib=../zlib-ng \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng-source. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-static -static-libgcc' \
+            --with-cc=musl-gcc \
+            --with-cc-opt='-static -O2' \
             --with-ld-opt='-static'
 
           #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
