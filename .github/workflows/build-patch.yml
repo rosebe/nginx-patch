@@ -64,11 +64,12 @@ jobs:
             
       - name: openssl-4.0.0
         run: |
-          git clone --recurse-submodules https://github.com/openssl/openssl.git
+          #git clone --recurse-submodules https://github.com/openssl/openssl.git
           #git clone --recurse-submodules -b openssl-3.6 --depth 1 https://github.com/openssl/openssl.git
+          git clone --recurse-submodules -b openssl-4.0 --depth 1 https://github.com/openssl/openssl.git
           
           cd openssl
-          git reset --hard 78f65b1e09132b0170cd56e8d5758912754c470c
+          #git reset --hard 78f65b1e09132b0170cd56e8d5758912754c470c
           echo "Openssl_Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
           cd ..
           
