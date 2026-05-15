@@ -99,14 +99,27 @@ jobs:
           ##openssl version -d
           
       - name: brotli
+        env:
+          CC: musl-gcc
+          CXX: musl-gcc
         run: |
           git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli
           cd ngx_brotli/deps/brotli
           mkdir out && cd out
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS="-Ofast -m64 -march=native -mtune=native -flto -funroll-loops -ffunction-sections -fdata-sections -Wl,--gc-sections" -DCMAKE_CXX_FLAGS="-Ofast -m64 -march=native -mtune=native -flto -funroll-loops -ffunction-sections -fdata-sections -Wl,--gc-sections" -DCMAKE_INSTALL_PREFIX=./installed ..
+          
+          # 核心修复：强制注入并卡死 musl-gcc 编译器，并生成纯静态库
+          cmake \
+            -DCMAKE_C_COMPILER=musl-gcc \
+            -DCMAKE_CXX_COMPILER=musl-gcc \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_C_FLAGS="-O2 -static" \
+            -DCMAKE_CXX_FLAGS="-O2 -static" \
+            -DCMAKE_INSTALL_PREFIX=./installed ..
+            
           cmake --build . --config Release --target brotlienc
           cd ../../../..
-                              
+          
       #- name: zlib-cf
         #run: |
           #git clone -b gcc.amd64  https://github.com/cloudflare/zlib.git zlib-cf
