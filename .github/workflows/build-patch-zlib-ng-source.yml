@@ -67,7 +67,9 @@ jobs:
           # 核心修复：将 Linux 内核头文件软链接到 musl 的搜索路径中，防止符号污染
           sudo ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
           sudo ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic
-          sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
+          #sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
+          sudo ln -sf /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm
+
       
       #- name: Setup GCC environment
         #uses: egor-tensin/setup-gcc@v2.0
@@ -237,7 +239,7 @@ jobs:
             --with-stream_ssl_preread_module \
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
-            --with-openssl-opt='no-shared no-comp enable-tls1_3' \
+            --with-openssl-opt='no-shared no-comp enable-tls1_3 no-secure-memory' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
             --with-zlib=../zlib-ng \
