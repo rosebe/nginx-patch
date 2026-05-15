@@ -112,9 +112,7 @@ jobs:
           #sed -i 's/compat=0/compat=1/g' configure
           
           ./configure --zlib-compat
-          make -C clean
           make -j$(nproc --all)
-          
           cd ..
           
           #...
