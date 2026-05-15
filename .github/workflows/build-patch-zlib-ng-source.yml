@@ -63,8 +63,7 @@ jobs:
          
       - name: Install musl toolchain
         run: |
-          sudo apt-get install -y musl-tools
-
+          sudo apt-get install -y musl-tools linux-libc-dev
       
       #- name: Setup GCC environment
         #uses: egor-tensin/setup-gcc@v2.0
@@ -230,12 +229,12 @@ jobs:
             --with-stream_ssl_preread_module \
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
-            --with-openssl-opt='no-shared no-comp enable-tls1_3' \
+            --with-openssl-opt='no-shared no-comp enable-tls1_3 no-secure-memory' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
             --with-zlib=../zlib-ng \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng-source. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-static -O2' \
+            --with-cc-opt='-static -O2 -I/usr/include' \
             --with-ld-opt='-static'
 
           #--with-zlib-opt='--static' \
