@@ -109,9 +109,11 @@ jobs:
           cd zlib-ng 
           
           # 核心注入：修改默认配置，强行将原生 API 切换为 zlib 1.x 兼容接口
-          sed -i 's/compat=0/compat=1/g' configure
+          #sed -i 's/compat=0/compat=1/g' configure
           
-          #./configure --zlib-compat
+          # 核心注入：必须开启兼容模式，且伪装成原生配置脚本
+          ./configure --zlib-compat
+          
           #make -j$(nproc --all)
           cd ..
           
