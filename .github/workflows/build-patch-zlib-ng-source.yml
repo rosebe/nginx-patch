@@ -276,8 +276,9 @@ jobs:
           # 验证是否为静态链接
           # 验证生成的二进制文件是否为“纯静态”
           echo "==== 验证二进制文件状态 ===="
-          file objs/nginx
-          ldd objs/nginx || echo "Static binary confirmed"
+          #chmod +x /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          file /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          ldd /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx || echo "Static binary confirmed"
             
       - uses: actions/upload-artifact@v7.0.1
         with:
