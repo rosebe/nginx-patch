@@ -82,7 +82,8 @@ jobs:
       - name: Install musl toolchain (GCC & G++)
         run: |
           # 1. 下载预编译好的 x86_64-linux-musl 完整交叉编译工具链
-          curl -LO https://musl.cc/x86_64-linux-musl-native.tgz
+          #curl -LO https://musl.cc/x86_64-linux-musl-native.tgz
+          wget https://musl.cc/x86_64-linux-musl-native.tgz
             
           # 2. 解压到指定目录
           sudo tar -xzf x86_64-linux-musl-native.tgz -C /opt
