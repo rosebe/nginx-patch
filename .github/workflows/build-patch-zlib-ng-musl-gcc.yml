@@ -80,7 +80,7 @@ jobs:
         run: |
            # 验证两个编译器是否正常工作
            musl-gcc --version
-           musl-g++ --version
+           #musl-g++ --version
       
       - name: openssl-4.0.0
         run: |
@@ -158,8 +158,8 @@ jobs:
           #./configure --zlib-compat
           ./configure --static --zlib-compat
           
-          make -j$(nproc --all) libz.a
-          #make -j$(nproc --all)
+          #make -j$(nproc --all) libz.a
+          make -j$(nproc --all)
           cd ..
           
           #...
