@@ -1,0 +1,475 @@
+# This is a basic workflow to help you get started with Actions
+
+name: build nginx-patch with zlib-ng Compiler Toolchains musl-gcc-g++
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  #push:
+    #branches:
+      #- main
+      #- b*
+  #pull_request:
+    #branches:
+      #- main
+      #- b*
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  release:
+    types: [published]
+
+# Set time zone
+env:
+  TZ: Asia/Shanghai
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    #runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v6.0.2
+      
+      # Runs a set of commands using the runners shell
+      - name: Runtime depend 
+        run: |
+          sudo apt-get update
+          sudo apt-get upgrade 
+          sudo apt-get install build-essential ca-certificates \
+                               zlib1g-dev libpcre3 libpcre3-dev libssl-dev \
+                               git cmake ninja-build gnupg2 lsb-release libunwind-dev \
+                               tar unzip  wget curl tree perl-base
+          sudo apt-get install -y libc6-dev libpcre3-dev zlib1g-dev
+          sudo apt-get install -y gcc g++
+          
+          #sudo apt-get install -y gcc g++ libstdc++-6-dev
+          #sudo apt-get install -y libc6-dev libpcre3-dev zlib1g-dev libstdc++-staticgcc g++-static
+      # 注意：某些高版本 Ubuntu 移除了 glibc 的静态库，全静态链接可能会提示找不到 -lc 或 -lpthread
+      # zlib1g-dev libc6-dev    
+      
+      #- name: Setup Go environment
+        #uses: actions/setup-go@v4.0.1
+        #with:
+         #go-version: ^1.19
+         #check-latest: true
+         
+      #- name: Go version
+        #run:  |
+         #go version
+         
+      - name: Setup GCC environment
+        uses: egor-tensin/setup-gcc@v2.0
+        with:
+         version: 15
+         platform: x64 
+      
+      #- name: Install musl toolchain
+        #run: |
+          #sudo apt-get install -y musl-tools linux-libc-dev
+          ### 核心修复：将 Linux 内核头文件软链接到 musl 的搜索路径中，防止符号污染
+          #sudo ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
+          #sudo ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic
+          ### sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
+          #sudo ln -sf /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm
+            
+      
+      - name: Install musl toolchain (GCC & G++)
+        run: |
+          # 1. 下载预编译好的 x86_64-linux-musl 完整交叉编译工具链
+          # curl -LO https://musl.cc/x86_64-linux-musl-native.tgz
+          #wget https://musl.cc/x86_64-linux-musl-native.tgz
+          #wget https://download.wireguard.com/qemu-test/toolchains/20211123/x86_64-linux-musl-native.tgz
+          wget https://download.wireguard.com/qemu-test/toolchains/20240917/x86_64-linux-musl-native.tgz
+          
+          
+          # 2. 强行创建干净的标准目标目录
+          sudo rm -rf /opt/x86_64-linux-musl-native
+          sudo mkdir -p /opt/x86_64-linux-musl-native
+          
+          # 3. 核心修复：解压并剥离最外层文件夹外壳，完美平铺到目标目录
+          sudo tar -xzf x86_64-linux-musl-native.tgz --strip-components=1 -C /opt/x86_64-linux-musl-native
+          
+          # 4. 此时 bin 目录百分之百在绝对固定的位置，直接写入系统 PATH
+          echo "/opt/x86_64-linux-musl-native/bin" >> $GITHUB_PATH
+          
+          # 5. 打印验证（确保在日志里能直接看到编译器版本）
+          export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
+          x86_64-linux-musl-gcc --version
+
+      - name: Verify installation
+        run: |
+           # 验证两个编译器是否正常工作
+           x86_64-linux-musl-gcc --version
+           x86_64-linux-musl-g++ --version
+
+        
+      #- name: openssl-4.0.0
+        #run: |
+          ##git clone --recurse-submodules https://github.com/openssl/openssl.git
+          ##git clone --recurse-submodules -b openssl-3.6 --depth 1 https://github.com/openssl/openssl.git
+          #git clone --recurse-submodules -b openssl-4.0 --depth 1 https://github.com/openssl/openssl.git
+          
+          #cd openssl
+          ##git reset --hard 78f65b1e09132b0170cd56e8d5758912754c470c
+          #echo "Openssl_Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
+          #cd ..
+          
+      - name: Build OpenSSL 4.0 for Musl
+        run: |
+          git clone --recurse-submodules -b openssl-4.0 --depth 1 https://github.com/openssl/openssl.git
+          cd openssl
+          echo "Openssl_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        
+          # 核心注入：
+          # 1. 强行指定编译器为 musl-gcc
+          # 2. 声明目标系统为 linux-x86_64
+          # 3. no-shared: 仅生成静态库 (.a)
+          # 4. no-async: 移除对 glibc 特定异步特性的依赖，防止 musl 下编译报错
+          ./Configure linux-x86_64 \
+                      CC=x86_64-linux-musl-gcc \
+                      CXX=x86_64-linux-musl-g++ \
+                      no-shared \
+                      no-async \
+                      --prefix=$(pwd)/installed
+          
+          # 编译并将其安装在独立沙盒内 (不需要加 sudo)
+          # 使用 make install_sw 代替 make install，这会只安装二进制和库文件，
+          # 跳过耗时的说明文档（man pages）生成，让 CI/CD 速度大幅提升。
+          make -j$(nproc)
+          make install_sw
+          cd ..
+   
+          
+      - name: brotli (with Musl C++)
+        env:
+          #CC: musl-gcc
+          #CXX: musl-g++
+          # 指向带完整 C++ 支持的编译器
+          CC: x86_64-linux-musl-gcc
+          CXX: x86_64-linux-musl-g++
+        run: |
+          git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli
+          cd ngx_brotli/deps/brotli
+          mkdir out && cd out
+          
+          # 核心修复：强制注入并卡死 musl-gcc 编译器，并生成纯静态库
+          cmake \
+            -DCMAKE_C_COMPILER=x86_64-linux-musl-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-linux-musl-g++ \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_C_FLAGS="-static -O2" \
+            -DCMAKE_CXX_FLAGS="-static -O2" \
+            -DCMAKE_INSTALL_PREFIX=./installed ..
+            
+            
+          #-DCMAKE_C_FLAGS="-static -O2 -ffunction-sections -fdata-sections" \  
+          #cmake --build . --config Release --target brotlienc
+          # 提示：Brotli 模块在 nginx 链接时，除了 brotlienc，通常还需要常见的公共解压/压缩基础目标
+          # 推荐一次性编译所有静态库目标，确保后续 nginx 链接时不会报 unresolved 错误
+          # 注意：这里需要同时编译 brotlienc 和 brotlicommon 两个目标
+          #cmake --build . --config Release --target brotlienc brotlicommon
+          cmake --build . --config Release --target brotlienc brotlicommon brotlidec
+          
+          cd ../../../..
+          
+      #- name: zlib-cf
+        #run: |
+          #git clone -b gcc.amd64  https://github.com/cloudflare/zlib.git zlib-cf
+          #cd zlib-cf
+          #make -f Makefile.in distclean
+          #git checkout .
+          #git pull
+          #git submodule update --init --recursive
+          #cd ..
+      
+      - name: zlib-ng [Pre-configure zlib-ng for Musl]
+        env:
+          #CC: musl-gcc
+          #CXX: musl-g++
+          CC: x86_64-linux-musl-gcc
+          CXX: x86_64-linux-musl-g++
+        run: |
+          #git clone --branch develop https://github.com/zlib-ng/zlib-ng.git
+          git clone https://github.com/zlib-ng/zlib-ng.git
+          cd zlib-ng 
+          
+          # 核心注入：修改默认配置，强行将原生 API 切换为 zlib 1.x 兼容接口
+          #sed -i 's/compat=0/compat=1/g' configure
+          
+          # 核心注入：必须开启兼容模式，且伪装成原生配置脚本
+          # 核心注入：必须开启 zlib 兼容模式和全静态
+          #./configure --zlib-compat
+          ./configure --static --zlib-compat
+          
+          # 直接使用系统最大核心编译所有目标，确保生成 libz.a 及其头文件
+          #make -j$(nproc --all) libz.a
+          make -j$(nproc --all)
+          cd ..
+          
+          #...
+          #auto/configure --with-cc-opt=-I/path/zlib-ng/include --with-ld-opt=-L/path/zlib-ng/lib
+      
+      
+      
+      #- name: pcre2
+        #run: |
+          #git clone --recurse-submodules https://github.com/PCRE2Project/pcre2.git
+          #cd pcre2
+          ##git checkout .
+          ##git pull
+          #./autogen.sh
+          
+          ##./configure --enable-jit=auto --enable-pcre2-16 --enable-pcre2-32
+          ##./configure --enable-jit --enable-pcre2-16 --enable-pcre2-32
+          ##sudo make -j$(nproc --all)
+          ##sudo make install
+          
+          ###export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64
+          ###sudo ldconfig
+          
+          ##sudo ldconfig /usr/local/lib64
+          ##sudo ldconfig /usr/local/lib
+          
+          #cd ..
+                
+      - name: Build PCRE2 for Musl
+        env:
+          CC: x86_64-linux-musl-gcc
+          CXX: x86_64-linux-musl-g++
+        run: |
+          git clone --recurse-submodules https://github.com/PCRE2Project/pcre2.git
+          cd pcre2
+        
+          # 1. 生成配置脚本
+          ./autogen.sh
+        
+          # 2. 配置：强行关闭动态库，仅开启静态库，并开启 JIT 提速加速正则匹配
+          # 将安装路径指定在当前目录下的 installed 文件夹内，保持环境干净
+          ./configure \
+            --host=x86_64-pc-linux-gnu \
+            --enable-static \
+            --disable-shared \
+            --enable-jit \
+            --prefix=$(pwd)/installed
+          
+          # 3. 编译并安装到指定的独立沙盒目录中 (不需要加 sudo)
+          make -j$(nproc)
+          make install
+          cd ..
+
+      
+      - name: build (Ultimate Musl Static)
+        env:
+          #CC: x86_64-linux-musl-gcc
+          #CXX: x86_64-linux-musl-g++
+          CC: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc
+          CXX: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++
+        
+        run: |
+          # 核心修复：强行在当前 Step 作用域激活 musl 工具链路径，防止 GitHub Actions 的 PATH 刷新延迟
+          # 1. 在当前作用域和全局双向强制焊死编译器绝对路径
+          export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
+          export CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
+          export CXX="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++"
+          
+          # 验证当前步骤内是否能立刻调用
+          x86_64-linux-musl-gcc --version
+          
+          # 获取所有 4 大外部组件的绝对路径
+          BROTLI_DIR=$(pwd)/ngx_brotli/deps/brotli/out/installed
+          ZLIB_NG_DIR=$(pwd)/zlib-ng
+          PCRE2_DIR=$(pwd)/pcre2/installed
+          OPENSSL_DIR=$(pwd)/openssl/installed
+        
+          git clone https://github.com/nginx/nginx.git
+          cd nginx
+          #git reset --hard a4100450c067009158299ad69adb7d6f5e775943
+          echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
+          
+                    
+          curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
+          
+          #cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
+          #patch --verbose -p1 < nginx_dynamic_tls_records.patch
+          
+          #cp ../nginx.patch ./nginx.patch
+          #patch -p1 < nginx.patch
+          
+          #cp ../option.patch ./option.patch
+          #patch -p1 < option.patch
+          
+          #wget https://raw.githubusercontent.com/rosebe/patch/master/nginx.patch
+          #patch -p1 < nginx.patch
+          
+          # 1. 设置 musl 编译器环境
+          #export CC=musl-gcc
+          #export CXX=musl-gcc
+          
+          # 强制清理之前可能残留的缓存
+          #make clean || true
+          rm -rf objs/
+
+          # 2. 核心调整：--with-cc 直接赋予绝对路径，彻底粉碎 Nginx 子 Shell 的找不到编译器魔咒
+          ./auto/configure \
+            --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
+            --prefix=/etc/nginx \
+            --sbin-path=/usr/sbin/nginx \
+            --modules-path=/usr/lib64/nginx/modules \
+            --conf-path=/etc/nginx/nginx.conf \
+            --error-log-path=/var/log/nginx/error.log \
+            --http-log-path=/var/log/nginx/access.log \
+            --pid-path=/var/run/nginx.pid \
+            --lock-path=/var/run/nginx.lock \
+            --http-client-body-temp-path=/var/cache/nginx/client_temp \
+            --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+            --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+            --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+            --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+            --user=nginx \
+            --group=nginx \
+            --with-compat \
+            --with-threads \
+            --with-http_addition_module \
+            --with-http_auth_request_module \
+            --with-http_dav_module \
+            --with-http_flv_module \
+            --with-http_gunzip_module \
+            --with-http_gzip_static_module \
+            --with-http_mp4_module \
+            --with-http_random_index_module \
+            --with-http_realip_module \
+            --with-http_secure_link_module \
+            --with-http_slice_module \
+            --with-http_ssl_module \
+            --with-http_stub_status_module \
+            --with-http_sub_module \
+            --with-http_v2_module \
+            --with-mail \
+            --with-mail_ssl_module \
+            --with-stream \
+            --with-stream_realip_module \
+            --with-stream_ssl_module \
+            --with-stream_ssl_preread_module \
+            --add-module=../ngx_brotli \
+            --with-pcre \
+            --with-pcre-jit \
+            --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
+            --with-cc-opt="-O2 -I${BROTLI_DIR}/include -I${ZLIB_NG_DIR} -I${PCRE2_DIR}/include -I${OPENSSL_DIR}/include" \
+            --with-ld-opt="-static \
+              ${BROTLI_DIR}/lib/libbrotlienc.a \
+              ${BROTLI_DIR}/lib/libbrotlicommon.a \
+              ${BROTLI_DIR}/lib/libbrotlidec.a \
+              ${ZLIB_NG_DIR}/libz.a \
+              ${PCRE2_DIR}/lib/libpcre2-8.a \
+              ${OPENSSL_DIR}/lib64/libssl.a \
+              ${OPENSSL_DIR}/lib64/libcrypto.a \
+              -lstdc++"
+            
+          #--with-zlib-opt='--static' \
+          #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
+
+          # 3. 如果配置失败，由于底层已经可以进入配置流，若遇到问题将可以直接查看真正的 autoconf.err 原因
+          if [ ! -f "objs/Makefile" ]; then
+              echo "==== CONFIGURATION FAILED! SHOWING ERROR LOG ===="
+              cat objs/autoconf.err 2>/dev/null || true
+              exit 1
+          fi
+          #make -j$(nproc --all)
+          make -j$(nproc --all) || (cat objs/autoconf.err && exit 1)
+          #make || (cat objs/autoconf.err && exit 1)
+          echo ""
+          echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
+          echo ""
+          tree -d
+          
+      - name: Verify
+        run: |
+          # 验证是否为静态链接
+          # 验证生成的二进制文件是否为“纯静态”
+          echo "==== 验证二进制文件状态 ===="
+          # 使用动态相对路径，确保在不同 GitHub 工作区路径下都能准确找到目标文件
+          TARGET_BIN=$(pwd)/nginx/objs/nginx
+          
+          file "$TARGET_BIN"
+          ldd "$TARGET_BIN" || echo "Static binary confirmed. No dynamic dependencies! Perfect!"
+            
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: nginx-patch
+          path: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          
+      # Setting an environment variable
+      # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions
+      - name: Set variables
+        id: step_one
+        shell: bash
+        run: |
+          echo "ASSET_NAME=nginx-patch-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} with-zlib-ng Compiler-Toolchain-musl-gcc-g++ build on $(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
+          echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          echo "RELEASE_NAME=nginx-patch v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          
+          echo "TAG_NAME: "
+          echo "${{ env.TAG_NAME }}"
+          echo ""
+          echo "RELEASE_NAME: "
+          echo "${{ env.RELEASE_NAME }}"
+          echo ""
+          echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
+          echo ""
+          echo "GITHUB_ENV 1: "$GITHUB_ENV
+          echo "GITHUB_ENV 2: ${GITHUB_ENV} "       
+                  
+      - name: Use variables
+        id: step_two
+        shell: bash
+        run: |
+          echo "ASSET_NAME: "
+          echo "${{ env.ASSET_NAME }}"
+          echo ""
+          echo "TAG_NAME: "
+          echo "${{ env.TAG_NAME }}"
+          echo ""
+          echo "RELEASE_NAME: "
+          echo "${{ env.RELEASE_NAME }}"
+          echo ""
+          echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
+          echo ""
+          echo "GITHUB_ENV 1: "$GITHUB_ENV
+          echo "GITHUB_ENV 2: ${GITHUB_ENV} "
+          echo ""
+          echo "GITHUB_EVENT_NAME is:" $github.event_name
+          
+          echo "$(tree -d)"
+          
+      - name: Upload binaries to release
+        #uses: svenstaro/upload-release-action@e2a63377780a8bacc68dcac9b0979ee20ad5a791
+        uses: svenstaro/upload-release-action@2.11.5
+        #if: github.event_name == 'release'
+        with:
+          repo_token: ${{ github.token }}          
+          tag: ${{ env.TAG_NAME }}
+          release_name: ${{ env.RELEASE_NAME }}
+          asset_name: ${{ env.ASSET_NAME }}
+          file: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          body: "### Happy play for CentOS 6.X
+
+                - [ ] compile (-static)
+                
+                `>  ldd nginx-patch-static.v1.xx.x.build.on.202x_x_x-x.x.x` 
+                
+                `>  not a dynamic executable`
+
+                - [ ] nginx configer 
+                
+                `>  nginx -V`"
+                
+          overwrite: true
+          file_glob: false
+          
