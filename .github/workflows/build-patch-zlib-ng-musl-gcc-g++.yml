@@ -381,7 +381,7 @@ jobs:
               ${PCRE2_DIR}/lib/libpcre2-8.a \
               ${OPENSSL_DIR}/lib64/libssl.a \
               ${OPENSSL_DIR}/lib64/libcrypto.a \
-              -lstdc++"
+              -lstdc++ -lm"
             
           #--with-zlib-opt='--static' \
           #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
