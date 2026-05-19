@@ -76,6 +76,12 @@ jobs:
           #sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
           sudo ln -sf /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm
             
+      - name: Verify installation
+        run: |
+           # 验证两个编译器是否正常工作
+           musl-gcc --version
+           musl-g++ --version
+      
       - name: openssl-4.0.0
         run: |
           #git clone --recurse-submodules https://github.com/openssl/openssl.git
