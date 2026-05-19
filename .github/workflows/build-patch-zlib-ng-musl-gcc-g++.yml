@@ -102,6 +102,13 @@ jobs:
           export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
           x86_64-linux-musl-gcc --version
 
+          # ==================== 🛠️ 核心头文件链接修复层 ====================
+          # 强行将宿主机的 Linux 内核头文件映射进当前独立工具链的沙盒路径中
+          TARGET_INC="/opt/x86_64-linux-musl-native/x86_64-linux-musl/include"
+          sudo ln -sf /usr/include/linux $TARGET_INC/linux
+          sudo ln -sf /usr/include/asm-generic $TARGET_INC/asm-generic
+          sudo ln -sf /usr/include/x86_64-linux-gnu/asm $TARGET_INC/asm
+      
       - name: Verify installation
         run: |
            # 验证两个编译器是否正常工作
