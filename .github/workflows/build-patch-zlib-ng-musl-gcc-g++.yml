@@ -83,13 +83,20 @@ jobs:
         run: |
           # 1. 下载预编译好的 x86_64-linux-musl 完整交叉编译工具链
           #curl -LO https://musl.cc/x86_64-linux-musl-native.tgz
-          wget https://musl.cc/x86_64-linux-musl-native.tgz
-            
-          # 2. 解压到指定目录
+          #wget https://musl.cc/x86_64-linux-musl-native.tgz
+          #wget https://download.wireguard.com/qemu-test/toolchains/20211123/x86_64-linux-musl-native.tgz
+          wget https://download.wireguard.com/qemu-test/toolchains/20240917/x86_64-linux-musl-native.tgz
+          
+          # 2. 创建独立目录并解压（避免污染系统原有环境）
+          sudo mkdir -p /opt/x86_64-linux-musl-native
           sudo tar -xzf x86_64-linux-musl-native.tgz -C /opt
-            
-          # 3. 将工具链的 bin 目录写入 GitHub Actions 的环境变量 PATH 中
-          echo "/opt/x86_64-linux-musl-native/bin" >> $GITHUB_PATH
+        
+          # 3. 检查解压出来的核心目录结构，动态适配其二进制路径（有的版本解压后带有一层子目录）
+          if [ -d "/opt/x86_64-linux-musl-native/bin" ]; then
+            echo "/opt/x86_64-linux-musl-native/bin" >> $GITHUB_PATH
+          else
+            echo "/opt/output/bin" >> $GITHUB_PATH
+          fi
 
 
       - name: Verify installation
