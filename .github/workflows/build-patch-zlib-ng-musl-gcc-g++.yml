@@ -82,22 +82,25 @@ jobs:
       - name: Install musl toolchain (GCC & G++)
         run: |
           # 1. 下载预编译好的 x86_64-linux-musl 完整交叉编译工具链
-          #curl -LO https://musl.cc/x86_64-linux-musl-native.tgz
+          # curl -LO https://musl.cc/x86_64-linux-musl-native.tgz
           #wget https://musl.cc/x86_64-linux-musl-native.tgz
           #wget https://download.wireguard.com/qemu-test/toolchains/20211123/x86_64-linux-musl-native.tgz
           wget https://download.wireguard.com/qemu-test/toolchains/20240917/x86_64-linux-musl-native.tgz
           
-          # 2. 创建独立目录并解压（避免污染系统原有环境）
+          
+          # 2. 强行创建干净的标准目标目录
+          sudo rm -rf /opt/x86_64-linux-musl-native
           sudo mkdir -p /opt/x86_64-linux-musl-native
-          sudo tar -xzf x86_64-linux-musl-native.tgz -C /opt
-        
-          # 3. 检查解压出来的核心目录结构，动态适配其二进制路径（有的版本解压后带有一层子目录）
-          if [ -d "/opt/x86_64-linux-musl-native/bin" ]; then
-            echo "/opt/x86_64-linux-musl-native/bin" >> $GITHUB_PATH
-          else
-            echo "/opt/output/bin" >> $GITHUB_PATH
-          fi
-
+          
+          # 3. 核心修复：解压并剥离最外层文件夹外壳，完美平铺到目标目录
+          sudo tar -xzf x86_64-linux-musl-native.tgz --strip-components=1 -C /opt/x86_64-linux-musl-native
+          
+          # 4. 此时 bin 目录百分之百在绝对固定的位置，直接写入系统 PATH
+          echo "/opt/x86_64-linux-musl-native/bin" >> $GITHUB_PATH
+          
+          # 5. 打印验证（确保在日志里能直接看到编译器版本）
+          export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
+          x86_64-linux-musl-gcc --version
 
       - name: Verify installation
         run: |
