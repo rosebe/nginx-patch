@@ -46,7 +46,7 @@ jobs:
                                git cmake ninja-build gnupg2 lsb-release libunwind-dev \
                                tar unzip  wget curl tree perl-base
           sudo apt-get install -y libc6-dev libpcre3-dev zlib1g-dev
-          sudo apt-get install -y gcc g++ libstdc++-6-dev
+          sudo apt-get install -y gcc g++
           
           #sudo apt-get install -y gcc g++ libstdc++-6-dev
           #sudo apt-get install -y libc6-dev libpcre3-dev zlib1g-dev libstdc++-staticgcc g++-static
@@ -92,7 +92,7 @@ jobs:
 
 
       - name: Verify installation
-        run: |
+         run: |
            # 验证两个编译器是否正常工作
            x86_64-linux-musl-gcc --version
            x86_64-linux-musl-g++ --version
