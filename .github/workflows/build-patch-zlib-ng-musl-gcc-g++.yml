@@ -388,8 +388,8 @@ jobs:
               exit 1
           fi
           #make -j$(nproc --all)
-          make -j$(nproc --all) || (cat objs/autoconf.err && exit 1)
-          #make || (cat objs/autoconf.err && exit 1)
+          #make -j$(nproc --all) || (cat objs/autoconf.err && exit 1)
+          make || (cat objs/autoconf.err && exit 1)
           echo ""
           echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
           echo ""
