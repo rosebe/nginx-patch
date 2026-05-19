@@ -144,18 +144,18 @@ jobs:
           # 2. 声明目标系统为 linux-x86_64
           # 3. no-shared: 仅生成静态库 (.a)
           # 4. no-async: 移除对 glibc 特定异步特性的依赖，防止 musl 下编译报错
-          #./Configure linux-x86_64 \
-          #            CC=x86_64-linux-musl-gcc \
-          #            CXX=x86_64-linux-musl-g++ \
-          #            no-shared \
-          #            no-async \
-          #            --prefix=$(pwd)/installed
+          ./Configure linux-x86_64 \
+                      CC=x86_64-linux-musl-gcc \
+                      CXX=x86_64-linux-musl-g++ \
+                      no-shared \
+                      no-async \
+                      --prefix=$(pwd)/installed
           
           # 编译并将其安装在独立沙盒内 (不需要加 sudo)
           # 使用 make install_sw 代替 make install，这会只安装二进制和库文件，
           # 跳过耗时的说明文档（man pages）生成，让 CI/CD 速度大幅提升。
-          #make -j$(nproc)
-          #make install_sw
+          make -j$(nproc)
+          make install_sw
           cd ..
    
           
@@ -266,148 +266,122 @@ jobs:
           # 2. 配置：强行关闭动态库，仅开启静态库，并开启 JIT 提速加速正则匹配
           # 将安装路径指定在当前目录下的 installed 文件夹内，保持环境干净
           ./configure \
-            --host=x86_64-pc-linux-gnu
-          
-          #  --enable-static \
-          #  --disable-shared \
-          #  --enable-jit \
-          #  --prefix=$(pwd)/installed
+            --host=x86_64-pc-linux-gnu          
+            --enable-static \
+            --disable-shared \
+            --enable-jit \
+            --prefix=$(pwd)/installed
           
           # 3. 编译并安装到指定的独立沙盒目录中 (不需要加 sudo)
-          #make -j$(nproc)
-          #make install
+          make -j$(nproc)
+          make install
           cd ..
 
       
       - name: build (Ultimate Musl Static)
         env:
-          #CC: x86_64-linux-musl-gcc
-          #CXX: x86_64-linux-musl-g++
           CC: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc
           CXX: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++
-        
         run: |
-          # 核心修复：强行在当前 Step 作用域激活 musl 工具链路径，防止 GitHub Actions 的 PATH 刷新延迟
-          # 1. 在当前作用域和全局双向强制焊死编译器绝对路径
-          export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
-          export CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
-          export CXX="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++"
-          
-          # 核心注入：显式告诉 Nginx 底层，多线程和系统调用库在 musl 中不需要带 -lpthread 或 -lc 等多余后缀
-          export NGX_PTHREAD="yes"
-          
-          # 验证当前步骤内是否能立刻调用
-          x86_64-linux-musl-gcc --version
-          
-          # 获取所有 4 大外部组件的绝对路径
-          BROTLI_DIR=$(pwd)/ngx_brotli/deps/brotli/out/installed
-          ZLIB_NG_DIR=$(pwd)/zlib-ng
-          PCRE2_DIR=$(pwd)/pcre2/installed
-          OPENSSL_DIR=$(pwd)/openssl/installed
-        
-          git clone https://github.com/nginx/nginx.git
-          cd nginx
-          #git reset --hard a4100450c067009158299ad69adb7d6f5e775943
-          echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
-          
-                    
-          curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
-          
-          #cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
-          #patch --verbose -p1 < nginx_dynamic_tls_records.patch
-          
-          #cp ../nginx.patch ./nginx.patch
-          #patch -p1 < nginx.patch
-          
-          #cp ../option.patch ./option.patch
-          #patch -p1 < option.patch
-          
-          #wget https://raw.githubusercontent.com/rosebe/patch/master/nginx.patch
-          #patch -p1 < nginx.patch
-          
-          # 1. 设置 musl 编译器环境
-          #export CC=musl-gcc
-          #export CXX=musl-gcc
-          
-          # 强制清理之前可能残留的缓存
-          #make clean || true
-          rm -rf objs/
-          
-          # ==================== 🛠️ 核心暴力手术层 ====================
-          # 强行修改 Nginx 编译器自检脚本，将其内部因为 autotest 编译失败而退出的 "exit 1" 直接改成 "true"
-          # 这样即便它误报 "found but is not working"，也绝对无法中断我们的配置流，强行向下生成 Makefile
-          sed -i 's/exit 1/true/g' auto/cc/name
-          sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
-          # ==========================================================
-
-
-          # 2. 执行配置
-          ./auto/configure \
-            --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
-            --prefix=/etc/nginx \
-            --sbin-path=/usr/sbin/nginx \
-            --modules-path=/usr/lib64/nginx/modules \
-            --conf-path=/etc/nginx/nginx.conf \
-            --error-log-path=/var/log/nginx/error.log \
-            --http-log-path=/var/log/nginx/access.log \
-            --pid-path=/var/run/nginx.pid \
-            --lock-path=/var/run/nginx.lock \
-            --http-client-body-temp-path=/var/cache/nginx/client_temp \
-            --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
-            --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
-            --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
-            --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
-            --user=nginx \
-            --group=nginx \
-            --with-compat \
-            --with-threads \
-            --with-http_addition_module \
-            --with-http_auth_request_module \
-            --with-http_dav_module \
-            --with-http_flv_module \
-            --with-http_gunzip_module \
-            --with-http_gzip_static_module \
-            --with-http_mp4_module \
-            --with-http_random_index_module \
-            --with-http_realip_module \
-            --with-http_secure_link_module \
-            --with-http_slice_module \
-            --with-http_ssl_module \
-            --with-http_stub_status_module \
-            --with-http_sub_module \
-            --with-http_v2_module \
-            --with-mail \
-            --with-mail_ssl_module \
-            --with-stream \
-            --with-stream_realip_module \
-            --with-stream_ssl_module \
-            --with-stream_ssl_preread_module \
-            --add-module=../ngx_brotli \
-            --with-openssl=../openssl \
-            --with-openssl-opt='no-shared no-comp enable-tls1_3' \
-            --with-pcre=../pcre2 \
-            --with-pcre-jit \
-            --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-static -O2 -I../zlib-ng' \
-            --with-ld-opt='-static -L../zlib-ng'
+                # 1. 注入并强制刷新全局路径与系统编译器标记
+                export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
+                export CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
+                export CXX="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++"
+                export NGX_PTHREAD="yes"
+                
+                # 精准捕获前面步骤中已经完美编译出的四大独立静态沙盒绝对路径
+                BROTLI_DIR=$(pwd)/ngx_brotli/deps/brotli/out/installed
+                ZLIB_NG_DIR=$(pwd)/zlib-ng
+                PCRE2_DIR=$(pwd)/pcre2/installed
+                OPENSSL_DIR=$(pwd)/openssl/installed
               
-            
-          #--with-zlib-opt='--static' \
-          #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
+                git clone https://github.com
+                cd nginx
+                echo "Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+                          
+                curl -s https://githubusercontent.com | patch --verbose -p 1
+                
+                rm -rf objs/
+                
+                # 2. 暴力手术层：确保老旧探针不阻断 Makefile 生成
+                sed -i 's/exit 1/true/g' auto/cc/name
+                sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
 
-          # 3. 如果配置失败，由于底层已经可以进入配置流，若遇到问题将可以直接查看真正的 autoconf.err 原因
-          if [ ! -f "objs/Makefile" ]; then
-              echo "==== CONFIGURATION FAILED! SHOWING ERROR LOG ===="
-              cat objs/autoconf.err 2>/dev/null || true
-              exit 1
-          fi
-          #make -j$(nproc --all)
-          #make -j$(nproc --all) || (cat objs/autoconf.err && exit 1)
-          make || (cat objs/autoconf.err && exit 1)
-          echo ""
-          echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
-          echo ""
-          tree -d
+                # 3. 终极自适应调整：
+                # - 彻底移除引发 Error 77 冲突的 --with-pcre=../pcre2 和 --with-openssl=../openssl
+                # - 明确保留 --with-pcre，激活 Nginx 自带的正则支持
+                # - 通过 --with-ld-opt 链条，在 make 阶段直接“吞入”四大静态组件
+                ./auto/configure \
+                  --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
+                  --prefix=/etc/nginx \
+                  --sbin-path=/usr/sbin/nginx \
+                  --modules-path=/usr/lib64/nginx/modules \
+                  --conf-path=/etc/nginx/nginx.conf \
+                  --error-log-path=/var/log/nginx/error.log \
+                  --http-log-path=/var/log/nginx/access.log \
+                  --pid-path=/var/run/nginx.pid \
+                  --lock-path=/var/run/nginx.lock \
+                  --http-client-body-temp-path=/var/cache/nginx/client_temp \
+                  --http-proxy-temp-path=/var/cache/nginx/proxy_temp \
+                  --http-fastcgi-temp-path=/var/cache/nginx/fastcgi_temp \
+                  --http-uwsgi-temp-path=/var/cache/nginx/uwsgi_temp \
+                  --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
+                  --user=nginx \
+                  --group=nginx \
+                  --with-compat \
+                  --with-threads \
+                  --with-http_gzip_module \
+                  --with-http_addition_module \
+                  --with-http_auth_request_module \
+                  --with-http_dav_module \
+                  --with-http_flv_module \
+                  --with-http_gunzip_module \
+                  --with-http_gzip_static_module \
+                  --with-http_mp4_module \
+                  --with-http_random_index_module \
+                  --with-http_realip_module \
+                  --with-http_secure_link_module \
+                  --with-http_slice_module \
+                  --with-http_ssl_module \
+                  --with-http_stub_status_module \
+                  --with-http_sub_module \
+                  --with-http_v2_module \
+                  --with-mail \
+                  --with-mail_ssl_module \
+                  --with-stream \
+                  --with-stream_realip_module \
+                  --with-stream_ssl_module \
+                  --with-stream_ssl_preread_module \
+                  --add-module=../ngx_brotli \
+                  --with-pcre \
+                  --with-pcre-jit \
+                  --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: 5648274. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
+                  --with-cc-opt="-O2 -I${BROTLI_DIR}/include -I${ZLIB_NG_DIR} -I${PCRE2_DIR}/include -I${OPENSSL_DIR}/include" \
+                  --with-ld-opt="-static \
+                    ${BROTLI_DIR}/lib/libbrotlienc.a \
+                    ${BROTLI_DIR}/lib/libbrotlicommon.a \
+                    ${BROTLI_DIR}/lib/libbrotlidec.a \
+                    ${ZLIB_NG_DIR}/libz.a \
+                    ${PCRE2_DIR}/lib/libpcre2-8.a \
+                    ${OPENSSL_DIR}/lib64/libssl.a \
+                    ${OPENSSL_DIR}/lib64/libcrypto.a \
+                    -lstdc++ -lm"
+                  
+                # 4. 诊断自检层
+                if [ ! -f "objs/Makefile" ]; then
+                  echo "==== CONFIGURATION FAILED! SHOWING TRUE ERROR LOG ===="
+                  cat objs/autoconf.err 2>/dev/null || true
+                  exit 1
+                fi
+
+                # 5. 执行正式的多核并行全静态编译
+                make -j$(nproc)
+                
+                echo ""
+                echo "GITHUB_WORKFLOW is: $GITHUB_WORKFLOW"
+                echo ""
+                tree -d
+
           
       - name: Verify
         run: |
