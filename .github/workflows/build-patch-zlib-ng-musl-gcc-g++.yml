@@ -369,19 +369,14 @@ jobs:
             --with-stream_ssl_module \
             --with-stream_ssl_preread_module \
             --add-module=../ngx_brotli \
-            --with-pcre \
+            --with-openssl=../openssl \
+            --with-openssl-opt='no-shared no-comp enable-tls1_3' \
+            --with-pcre=../pcre2 \
             --with-pcre-jit \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt="-O2 -I${BROTLI_DIR}/include -I${ZLIB_NG_DIR} -I${PCRE2_DIR}/include -I${OPENSSL_DIR}/include" \
-            --with-ld-opt="-static \
-              ${BROTLI_DIR}/lib/libbrotlienc.a \
-              ${BROTLI_DIR}/lib/libbrotlicommon.a \
-              ${BROTLI_DIR}/lib/libbrotlidec.a \
-              ${ZLIB_NG_DIR}/libz.a \
-              ${PCRE2_DIR}/lib/libpcre2-8.a \
-              ${OPENSSL_DIR}/lib64/libssl.a \
-              ${OPENSSL_DIR}/lib64/libcrypto.a \
-              -lstdc++ -lm"
+            --with-cc-opt='-static -O2 -I../zlib-ng' \
+            --with-ld-opt='-static -L../zlib-ng'
+              
             
           #--with-zlib-opt='--static' \
           #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
