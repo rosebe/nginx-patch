@@ -90,15 +90,14 @@ jobs:
           # 3. 将工具链的 bin 目录写入 GitHub Actions 的环境变量 PATH 中
           echo "/opt/x86_64-linux-musl-native/bin" >> $GITHUB_PATH
 
+
       - name: Verify installation
          run: |
            # 验证两个编译器是否正常工作
            x86_64-linux-musl-gcc --version
            x86_64-linux-musl-g++ --version
 
-      
-      
-      
+        
       #- name: openssl-4.0.0
         #run: |
           ##git clone --recurse-submodules https://github.com/openssl/openssl.git
