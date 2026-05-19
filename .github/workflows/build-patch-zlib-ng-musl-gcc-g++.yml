@@ -279,6 +279,9 @@ jobs:
           export CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
           export CXX="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++"
           
+          # 核心注入：显式告诉 Nginx 底层，多线程和系统调用库在 musl 中不需要带 -lpthread 或 -lc 等多余后缀
+          export NGX_PTHREAD="yes"
+          
           # 验证当前步骤内是否能立刻调用
           x86_64-linux-musl-gcc --version
           
@@ -317,7 +320,7 @@ jobs:
           rm -rf objs/
 
           # 2. 核心调整：--with-cc 直接赋予绝对路径，彻底粉碎 Nginx 子 Shell 的找不到编译器魔咒
-          ./auto/configure \
+          ngx_feature_libs="" ./auto/configure \
             --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
             --prefix=/etc/nginx \
             --sbin-path=/usr/sbin/nginx \
