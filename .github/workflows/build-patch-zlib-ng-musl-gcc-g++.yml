@@ -103,11 +103,17 @@ jobs:
           x86_64-linux-musl-gcc --version
 
           # ==================== 🛠️ 核心头文件链接修复层 ====================
-          # 强行将宿主机的 Linux 内核头文件映射进当前独立工具链的沙盒路径中
+          # 1. 声明目标头文件搜索根路径
           TARGET_INC="/opt/x86_64-linux-musl-native/x86_64-linux-musl/include"
-          sudo ln -sf /usr/include/linux $TARGET_INC/linux
-          sudo ln -sf /usr/include/asm-generic $TARGET_INC/asm-generic
-          sudo ln -sf /usr/include/x86_64-linux-gnu/asm $TARGET_INC/asm
+  
+          # 2. 核心修复：强行创建该文件夹（防止因为 include 目录不存在导致 ln 报错）
+          sudo mkdir -p "$TARGET_INC"
+      
+          # 3. 强行将宿主机的 Linux 内核头文件映射进沙盒路径中
+          sudo ln -sf /usr/include/linux "$TARGET_INC/linux"
+          sudo ln -sf /usr/include/asm-generic "$TARGET_INC/asm-generic"
+          sudo ln -sf /usr/include/x86_64-linux-gnu/asm "$TARGET_INC/asm"
+      
       
       - name: Verify installation
         run: |
