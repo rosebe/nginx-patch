@@ -267,12 +267,17 @@ jobs:
       
       - name: build (Ultimate Musl Static)
         env:
-          CC: x86_64-linux-musl-gcc
-          CXX: x86_64-linux-musl-g++
+          #CC: x86_64-linux-musl-gcc
+          #CXX: x86_64-linux-musl-g++
+          CC: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc
+          CXX: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++
         
         run: |
           # 核心修复：强行在当前 Step 作用域激活 musl 工具链路径，防止 GitHub Actions 的 PATH 刷新延迟
+          # 1. 在当前作用域和全局双向强制焊死编译器绝对路径
           export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
+          export CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
+          export CXX="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++"
           
           # 验证当前步骤内是否能立刻调用
           x86_64-linux-musl-gcc --version
@@ -311,9 +316,9 @@ jobs:
           #make clean || true
           rm -rf objs/
 
-          
-          ./auto/configure \
-            --with-cc="x86_64-linux-musl-gcc" \
+          # 2. 核心调整：--with-cc 直接赋予绝对路径，彻底粉碎 Nginx 子 Shell 的找不到编译器魔咒
+          CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" ./auto/configure \
+            --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
             --prefix=/etc/nginx \
             --sbin-path=/usr/sbin/nginx \
             --modules-path=/usr/lib64/nginx/modules \
