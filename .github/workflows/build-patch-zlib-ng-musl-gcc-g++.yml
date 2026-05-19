@@ -144,18 +144,18 @@ jobs:
           # 2. 声明目标系统为 linux-x86_64
           # 3. no-shared: 仅生成静态库 (.a)
           # 4. no-async: 移除对 glibc 特定异步特性的依赖，防止 musl 下编译报错
-          ./Configure linux-x86_64 \
-                      CC=x86_64-linux-musl-gcc \
-                      CXX=x86_64-linux-musl-g++ \
-                      no-shared \
-                      no-async \
-                      --prefix=$(pwd)/installed
+          #./Configure linux-x86_64 \
+          #            CC=x86_64-linux-musl-gcc \
+          #            CXX=x86_64-linux-musl-g++ \
+          #            no-shared \
+          #            no-async \
+          #            --prefix=$(pwd)/installed
           
           # 编译并将其安装在独立沙盒内 (不需要加 sudo)
           # 使用 make install_sw 代替 make install，这会只安装二进制和库文件，
           # 跳过耗时的说明文档（man pages）生成，让 CI/CD 速度大幅提升。
-          make -j$(nproc)
-          make install_sw
+          #make -j$(nproc)
+          #make install_sw
           cd ..
    
           
