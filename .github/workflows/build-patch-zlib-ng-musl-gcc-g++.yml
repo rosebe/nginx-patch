@@ -271,6 +271,12 @@ jobs:
           CXX: x86_64-linux-musl-g++
         
         run: |
+          # 核心修复：强行在当前 Step 作用域激活 musl 工具链路径，防止 GitHub Actions 的 PATH 刷新延迟
+          export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
+          
+          # 验证当前步骤内是否能立刻调用
+          x86_64-linux-musl-gcc --version
+          
           # 获取所有 4 大外部组件的绝对路径
           BROTLI_DIR=$(pwd)/ngx_brotli/deps/brotli/out/installed
           ZLIB_NG_DIR=$(pwd)/zlib-ng
