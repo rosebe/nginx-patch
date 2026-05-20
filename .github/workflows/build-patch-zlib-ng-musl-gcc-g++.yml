@@ -299,7 +299,7 @@ jobs:
                 PCRE2_DIR=$(pwd)/pcre2/installed
                 OPENSSL_DIR=$(pwd)/openssl/installed
               
-                git clone https://github.com
+                git clone https://github.com/nginx/nginx.git
                 cd nginx
                 echo "Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
                           
