@@ -287,7 +287,7 @@ jobs:
           CC: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc
           CXX: /opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++
         run: |
-                # 1. 注入并强制刷新全局路径与系统编译器标记
+                # 1. 注入并强制刷新全局路径与系统编译器标记 (保持你原样)
                 export PATH="/opt/x86_64-linux-musl-native/bin:$PATH"
                 export CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
                 export CXX="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++"
@@ -307,14 +307,18 @@ jobs:
 
                 rm -rf objs/
 
-                # 2. 暴力手术层：强制跳过 Nginx 的运行探针，并提前向内核库注入静态链条
+                # =========================================================
+                # 【核心修正】清空所有可能污染初始测试的环境变量，确保 configure 能 100% 走通
+                # =========================================================
+                unset CORE_LIBS
+
+                # 2. 暴力手术层：强制跳过 Nginx 的运行探针
                 sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
                 sed -i 's/ngx_feature_run=value/ngx_feature_run=no/g' auto/cc/conf
 
-                # 将 Brotli 和 Zlib-ng 的静态库直接注入 Nginx 的核心链接链条，规避 configure 的初始化测试阻断
-                export CORE_LIBS="-static ${BROTLI_DIR}/lib/libbrotlienc.a ${BROTLI_DIR}/lib/libbrotlicommon.a ${BROTLI_DIR}/lib/libbrotlidec.a ${ZLIB_NG_DIR}/libz.a -lstdc++ -lm"
-
-                # 3. 终极自适应调整
+                # 3. 终极自适应调整：
+                # 这里只保留安全的 --with-pcre 和 --with-openssl 源码级探针，它们不会引发基础测试崩溃。
+                # 注意：暂时拿掉干扰链接的第三方组件，只在 cc-opt 里保留 Brotli 头文件。
                 ./auto/configure \
                   --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
                   --prefix=/etc/nginx \
@@ -361,15 +365,27 @@ jobs:
                   --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: 5648274. Dynamic TLS Record support. zlib-ng. musl-gcc." \
                   --with-cc-opt="-O2 -I${BROTLI_DIR}/include"
 
-                # 4. 诊断自检层（如果配置通过，这里会被跳过）
+                # 4. 诊断自检层
                 if [ ! -f "objs/Makefile" ]; then
                   echo "==== CONFIGURATION FAILED! SHOWING TRUE ERROR LOG ===="
                   cat objs/autoconf.err 2>/dev/null || true
                   exit 1
                 fi
 
+                # =========================================================
+                # 【核心手术】此时 Makefile 已经完美落地！我们直接修改最终的链接选项（ALL_LIBS）
+                # =========================================================
+                echo "==== INJECTING STATIC LIBRARIES INTO GENERATED MAKEFILE ===="
+
+                # 拼装要吞进去的四大全静态链条
+                STATIC_LINK_FLAGS="-static ${BROTLI_DIR}/lib/libbrotlienc.a ${BROTLI_DIR}/lib/libbrotlicommon.a ${BROTLI_DIR}/lib/libbrotlidec.a ${ZLIB_NG_DIR}/libz.a -lstdc++ -lm"
+
+                # 使用 sed 精准捕获 objs/Makefile 中的 ALL_LIBS 并在其最前方追加全静态组件依赖
+                sed -i "s|ALL_LIBS =|ALL_LIBS = ${STATIC_LINK_FLAGS} |g" objs/Makefile
+
                 # 5. 执行正式的多核并行全静态编译
                 make -j$(nproc)
+
 
                 
                 echo ""
