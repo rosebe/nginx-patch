@@ -266,7 +266,8 @@ jobs:
           # 2. 配置：强行关闭动态库，仅开启静态库，并开启 JIT 提速加速正则匹配
           # 将安装路径指定在当前目录下的 installed 文件夹内，保持环境干净
           ./configure \
-            --host=x86_64-pc-linux-gnu         
+            --host=x86_64-pc-linux-gnu \         
+            --enable-static \
             --disable-shared \
             --enable-jit \
             --prefix=$(pwd)/installed
