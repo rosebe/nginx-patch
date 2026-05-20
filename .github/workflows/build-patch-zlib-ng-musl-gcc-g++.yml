@@ -292,38 +292,29 @@ jobs:
                 export CC="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc"
                 export CXX="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-g++"
                 export NGX_PTHREAD="yes"
-                
+
                 # 精准捕获前面步骤中已经完美编译出的四大独立静态沙盒绝对路径
                 BROTLI_DIR=$(pwd)/ngx_brotli/deps/brotli/out/installed
                 ZLIB_NG_DIR=$(pwd)/zlib-ng
-                PCRE2_DIR=$(pwd)/pcre2/installed
-                OPENSSL_DIR=$(pwd)/openssl/installed
-                
-                # 【优化】预先封装超长的静态库链接链条，避免传参给 configure 时发生断行错误
-                STATIC_LIBS="-static ${BROTLI_DIR}/lib/libbrotlienc.a ${BROTLI_DIR}/lib/libbrotlicommon.a ${BROTLI_DIR}/lib/libbrotlidec.a ${ZLIB_NG_DIR}/libz.a ${PCRE2_DIR}/lib/libpcre2-8.a ${OPENSSL_DIR}/lib64/libssl.a ${OPENSSL_DIR}/lib64/libcrypto.a -lstdc++ -lm"
+                PCRE2_DIR=$(pwd)/pcre2
+                OPENSSL_DIR=$(pwd)/openssl
 
-              
                 git clone https://github.com/nginx/nginx.git
                 cd nginx
                 echo "Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
                           
                 curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
-                
+
                 rm -rf objs/
-                
-                # 2. 暴力手术层：确保老旧探针不阻断 Makefile 生成
-                sed -i 's/exit 1/true/g' auto/cc/name
-                sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
-                
-                # 2. 暴力手术层：强制跳过 Nginx 在 Musl 环境下对 C 编译器的运行检查（防止因为 -static 测试导致报错）
+
+                # 2. 暴力手术层：强制跳过 Nginx 的运行探针，并提前向内核库注入静态链条
                 sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
                 sed -i 's/ngx_feature_run=value/ngx_feature_run=no/g' auto/cc/conf
 
+                # 将 Brotli 和 Zlib-ng 的静态库直接注入 Nginx 的核心链接链条，规避 configure 的初始化测试阻断
+                export CORE_LIBS="-static ${BROTLI_DIR}/lib/libbrotlienc.a ${BROTLI_DIR}/lib/libbrotlicommon.a ${BROTLI_DIR}/lib/libbrotlidec.a ${ZLIB_NG_DIR}/libz.a -lstdc++ -lm"
 
-                # 3. 终极自适应调整：
-                # - 彻底移除引发 Error 77 冲突的 --with-pcre=../pcre2 和 --with-openssl=../openssl
-                # - 明确保留 --with-pcre，激活 Nginx 自带的正则支持
-                # - 通过 --with-ld-opt 链条，在 make 阶段直接“吞入”四大静态组件
+                # 3. 终极自适应调整
                 ./auto/configure \
                   --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
                   --prefix=/etc/nginx \
@@ -365,12 +356,12 @@ jobs:
                   --with-stream_ssl_module \
                   --with-stream_ssl_preread_module \
                   --add-module=../ngx_brotli \
-                  --with-pcre \
-                  --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: 5648274. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-                  --with-cc-opt="-O2 -I${BROTLI_DIR}/include -I${ZLIB_NG_DIR} -I${PCRE2_DIR}/include -I${OPENSSL_DIR}/include" \
-                  --with-ld-opt="${STATIC_LIBS}"
-                  
-                # 4. 诊断自检层
+                  --with-pcre="${PCRE2_DIR}" \
+                  --with-openssl="${OPENSSL_DIR}" \
+                  --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: 5648274. Dynamic TLS Record support. zlib-ng. musl-gcc." \
+                  --with-cc-opt="-O2 -I${BROTLI_DIR}/include"
+
+                # 4. 诊断自检层（如果配置通过，这里会被跳过）
                 if [ ! -f "objs/Makefile" ]; then
                   echo "==== CONFIGURATION FAILED! SHOWING TRUE ERROR LOG ===="
                   cat objs/autoconf.err 2>/dev/null || true
@@ -379,6 +370,7 @@ jobs:
 
                 # 5. 执行正式的多核并行全静态编译
                 make -j$(nproc)
+
                 
                 echo ""
                 echo "GITHUB_WORKFLOW is: $GITHUB_WORKFLOW"
