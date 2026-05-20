@@ -362,12 +362,13 @@ jobs:
                 EOF
 
                 # =========================================================
-                # 3. 彻底降维打击：强行让 Nginx 跳过整个 configure 探测流，直接生成基于 musl-gcc 的 Makefile
+                # 3. 彻底降维打击：强行让 Nginx 跳过整个 configure 探测流
                 # =========================================================
-                # 欺骗 Nginx 脚本：假装所有的类型探测、硬件探测已经完美结束，立刻放行
-                sed -i 's/auto/types/sizeof/true/g' auto/configure
-                sed -i 's/auto/types/typedef/true/g' auto/configure
-                sed -i 's/auto/endian/true/g' auto/configure
+                # 【修复】将 s/// 改为 s||| 形式，防止路径中的斜杠引发解析崩溃
+                sed -i 's|auto/types/sizeof|true|g' auto/configure
+                sed -i 's|auto/types/typedef|true|g' auto/configure
+                sed -i 's|auto/endian|true|g' auto/configure
+
 
                 # 修正 Nginx 对编译器的“狗眼看人低”：不允许它因为测试失败而将 CC 重置为系统默认的 gcc
                 sed -i 's/CC=$ngx_proxy_cc/true/g' auto/cc/name
