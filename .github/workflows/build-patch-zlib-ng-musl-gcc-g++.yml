@@ -294,10 +294,11 @@ jobs:
                 export NGX_PTHREAD="yes"
 
                 # 精准捕获前面步骤中已经完美编译出的四大独立静态沙盒绝对路径
+                # 【注意】请确保 PCRE2_DIR 和 OPENSSL_DIR 指向的是带有 include 和 lib/lib64 的安装目录！
                 BROTLI_DIR=$(pwd)/ngx_brotli/deps/brotli/out/installed
                 ZLIB_NG_DIR=$(pwd)/zlib-ng
-                PCRE2_DIR=$(pwd)/pcre2
-                OPENSSL_DIR=$(pwd)/openssl
+                PCRE2_DIR=$(pwd)/pcre2/installed
+                OPENSSL_DIR=$(pwd)/openssl/installed
 
                 git clone https://github.com/nginx/nginx.git
                 cd nginx
@@ -308,18 +309,17 @@ jobs:
                 rm -rf objs/
 
                 # =========================================================
-                # 2. 暴力手术层（核心魔改版）：彻底粉碎 Nginx 针对交叉编译器的阻断性检测
+                # 2. 暴力手术层：强制跳过 Nginx 的跨平台运行探针
                 # =========================================================
-                # 强制将所有检测运行结果（ngx_feature_run）锁定为 no，不再尝试在 glibc 宿主机上运行 musl 程序
                 sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
                 sed -i 's/ngx_feature_run=value/ngx_feature_run=no/g' auto/cc/conf
 
-                # 【新增关键】如果 Nginx 判定编译器测试失败抛出 exit 1，将其强行改写为 true 允许继续向下生成 Makefile
-                sed -i 's/echo ".\/auto\/configure: error: C compiler \$CC is not found"/true/g' auto/cc/conf
-                sed -i '/C compiler $CC is not found/,/exit 1/c\true' auto/cc/conf
-                sed -i 's/exit 1/true/g' auto/cc/name
-
+                # =========================================================
                 # 3. 终极自适应调整：
+                # - 移除所有破坏交叉编译的 =DIR 探针
+                # - 显式开启 --with-pcre 和 --with-openssl 激活功能模块，但通过系统级注入解决依赖
+                # - 把所有依赖的头文件全部塞进 cc-opt 确保配置通过
+                # =========================================================
                 ./auto/configure \
                   --with-cc="/opt/x86_64-linux-musl-native/bin/x86_64-linux-musl-gcc" \
                   --prefix=/etc/nginx \
@@ -361,10 +361,9 @@ jobs:
                   --with-stream_ssl_module \
                   --with-stream_ssl_preread_module \
                   --add-module=../ngx_brotli \
-                  --with-pcre="${PCRE2_DIR}" \
-                  --with-openssl="${OPENSSL_DIR}" \
+                  --with-pcre \
                   --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: 5648274. Dynamic TLS Record support. zlib-ng. musl-gcc." \
-                  --with-cc-opt="-O2 -I${BROTLI_DIR}/include"
+                  --with-cc-opt="-O2 -I${BROTLI_DIR}/include -I${ZLIB_NG_DIR} -I${PCRE2_DIR}/include -I${OPENSSL_DIR}/include"
 
                 # 4. 诊断自检层
                 if [ ! -f "objs/Makefile" ]; then
@@ -374,17 +373,18 @@ jobs:
                 fi
 
                 # =========================================================
-                # 【核心手术】此时 Makefile 已经完美落地！我们直接修改最终的链接选项（ALL_LIBS）
+                # 5. 【核心手术】此时 Makefile 已经基于正宗的 musl-gcc 完美落地！
+                #    直接将四大金刚的静态二进制实体文件强行缝合到 ALL_LIBS 链接链条中！
                 # =========================================================
                 echo "==== INJECTING STATIC LIBRARIES INTO GENERATED MAKEFILE ===="
 
-                # 拼装要吞进去的四大全静态链条
-                STATIC_LINK_FLAGS="-static ${BROTLI_DIR}/lib/libbrotlienc.a ${BROTLI_DIR}/lib/libbrotlicommon.a ${BROTLI_DIR}/lib/libbrotlidec.a ${ZLIB_NG_DIR}/libz.a -lstdc++ -lm"
+                # 缝合所有的静态库实体 .a 文件（按依赖顺序排列）
+                STATIC_LINK_FLAGS="-static ${BROTLI_DIR}/lib/libbrotlienc.a ${BROTLI_DIR}/lib/libbrotlicommon.a ${BROTLI_DIR}/lib/libbrotlidec.a ${PCRE2_DIR}/lib/libpcre2-8.a ${OPENSSL_DIR}/lib64/libssl.a ${OPENSSL_DIR}/lib64/libcrypto.a ${ZLIB_NG_DIR}/libz.a -lstdc++ -lm"
 
-                # 使用 sed 精准捕获 objs/Makefile 中的 ALL_LIBS 并在其最前方追加全静态组件依赖
+                # 精准替换掉生成的 Makefile 中的库依赖
                 sed -i "s|ALL_LIBS =|ALL_LIBS = ${STATIC_LINK_FLAGS} |g" objs/Makefile
 
-                # 5. 执行正式的多核并行全静态编译
+                # 6. 执行正式的多核并行全静态编译
                 make -j$(nproc)
 
 
