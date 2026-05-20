@@ -298,18 +298,27 @@ jobs:
                 ZLIB_NG_DIR=$(pwd)/zlib-ng
                 PCRE2_DIR=$(pwd)/pcre2/installed
                 OPENSSL_DIR=$(pwd)/openssl/installed
+                
+                # 【优化】预先封装超长的静态库链接链条，避免传参给 configure 时发生断行错误
+                STATIC_LIBS="-static ${BROTLI_DIR}/lib/libbrotlienc.a ${BROTLI_DIR}/lib/libbrotlicommon.a ${BROTLI_DIR}/lib/libbrotlidec.a ${ZLIB_NG_DIR}/libz.a ${PCRE2_DIR}/lib/libpcre2-8.a ${OPENSSL_DIR}/lib64/libssl.a ${OPENSSL_DIR}/lib64/libcrypto.a -lstdc++ -lm"
+
               
                 git clone https://github.com/nginx/nginx.git
                 cd nginx
                 echo "Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
                           
-                curl -s https://githubusercontent.com | patch --verbose -p 1
+                curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
                 
                 rm -rf objs/
                 
                 # 2. 暴力手术层：确保老旧探针不阻断 Makefile 生成
-                sed -i 's/exit 1/true/g' auto/cc/name
+                #sed -i 's/exit 1/true/g' auto/cc/name
+                #sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
+                
+                # 2. 暴力手术层：强制跳过 Nginx 在 Musl 环境下对 C 编译器的运行检查（防止因为 -static 测试导致报错）
                 sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
+                sed -i 's/ngx_feature_run=value/ngx_feature_run=no/g' auto/cc/conf
+
 
                 # 3. 终极自适应调整：
                 # - 彻底移除引发 Error 77 冲突的 --with-pcre=../pcre2 和 --with-openssl=../openssl
@@ -359,15 +368,7 @@ jobs:
                   --with-pcre \
                   --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: 5648274. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
                   --with-cc-opt="-O2 -I${BROTLI_DIR}/include -I${ZLIB_NG_DIR} -I${PCRE2_DIR}/include -I${OPENSSL_DIR}/include" \
-                  --with-ld-opt="-static \
-                    ${BROTLI_DIR}/lib/libbrotlienc.a \
-                    ${BROTLI_DIR}/lib/libbrotlicommon.a \
-                    ${BROTLI_DIR}/lib/libbrotlidec.a \
-                    ${ZLIB_NG_DIR}/libz.a \
-                    ${PCRE2_DIR}/lib/libpcre2-8.a \
-                    ${OPENSSL_DIR}/lib64/libssl.a \
-                    ${OPENSSL_DIR}/lib64/libcrypto.a \
-                    -lstdc++ -lm"
+                  --with-ld-opt="${STATIC_LIBS}"
                   
                 # 4. 诊断自检层
                 if [ ! -f "objs/Makefile" ]; then
