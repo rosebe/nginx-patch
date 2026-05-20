@@ -312,8 +312,8 @@ jobs:
                 rm -rf objs/
                 
                 # 2. 暴力手术层：确保老旧探针不阻断 Makefile 生成
-                #sed -i 's/exit 1/true/g' auto/cc/name
-                #sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
+                sed -i 's/exit 1/true/g' auto/cc/name
+                sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
                 
                 # 2. 暴力手术层：强制跳过 Nginx 在 Musl 环境下对 C 编译器的运行检查（防止因为 -static 测试导致报错）
                 sed -i 's/ngx_feature_run=yes/ngx_feature_run=no/g' auto/cc/conf
