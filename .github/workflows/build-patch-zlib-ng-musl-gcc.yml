@@ -90,6 +90,11 @@ jobs:
           
           cd openssl
           #git reset --hard 78f65b1e09132b0170cd56e8d5758912754c470c
+          
+          git fetch --depth 1 origin e15e4852b3d4776b7aeb827ba734f2ac7a0b1ff7
+          git reset --hard e15e4852b3d4776b7aeb827ba734f2ac7a0b1ff7
+          git submodule update --init --recursive
+          
           echo "Openssl_Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
           cd ..
           
