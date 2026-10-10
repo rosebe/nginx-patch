@@ -460,7 +460,7 @@ jobs:
           file "$TARGET_BIN"
           ldd "$TARGET_BIN" || echo "Static binary confirmed. No dynamic dependencies! Perfect!"
             
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: nginx-patch
           path: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
