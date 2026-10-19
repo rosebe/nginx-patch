@@ -64,11 +64,11 @@ jobs:
         #run:  |
          #go version
          
-      #- name: Setup GCC environment
-        #uses: egor-tensin/setup-gcc@v2.0
-        #with:
-         #version: 16
-         #platform: x64 
+      - name: Setup GCC environment
+        uses: egor-tensin/setup-gcc@v2.0
+        with:
+         version: 16
+         platform: x64 
       
       - name: Install musl toolchain
         run: |
@@ -119,9 +119,9 @@ jobs:
           ##openssl version -d
           
       - name: brotli
-        env:
-          CC: musl-gcc
-          CXX: musl-g++
+        #env:
+          #CC: musl-gcc
+          #CXX: musl-g++
         run: |
           git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli
           cd ngx_brotli/deps/brotli
@@ -158,9 +158,9 @@ jobs:
           #cd ..
       
       - name: zlib-ng [Pre-configure zlib-ng for Musl]
-        env:
-          CC: musl-gcc
-          CXX: musl-g++
+        #env:
+          #CC: musl-gcc
+          #CXX: musl-g++
         run: |
           #git clone --branch develop https://github.com/zlib-ng/zlib-ng.git
           git clone https://github.com/zlib-ng/zlib-ng.git
@@ -267,8 +267,8 @@ jobs:
             --with-pcre-jit \
             --with-zlib=../zlib-ng \
             --with-zlib-opt='--zlib-compat' \
-            --with-cc-opt='-O3 -march=x86-64 -fprofile-generate=/tmp/pgo-data' \
-            --with-ld-opt='-fprofile-generate=/tmp/pgo-data' \
+            --with-cc-opt='-static -static-libgcc -O3 -march=x86-64 -fprofile-generate=/tmp/pgo-data' \
+            --with-ld-opt='-static -fprofile-generate=/tmp/pgo-data' \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${Openssl_Commit_ID} . Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler Standard GCC (PGO Stage 1). And build on $(date +%Y_%m_%d-%H:%M:%S)"
           
           # 3. 稳健的多核并发编译
@@ -484,9 +484,11 @@ jobs:
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
+            --with-zlib=../zlib-ng \
+            --with-zlib-opt='--zlib-compat' \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. PGO (Profile Guided Optimization) enabled. compatible x86-64. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-static -O3 -I../zlib-ng -march=x86-64 -flto=auto -fprofile-use -fprofile-correction -fprofile-dir=/tmp/pgo-data' \
-            --with-ld-opt='-static -L../zlib-ng -flto=auto -fprofile-use -fprofile-dir=/tmp/pgo-data'
+            --with-cc-opt='-static -O3 -march=x86-64 -flto=auto -fprofile-use -fprofile-correction -fprofile-dir=/tmp/pgo-data' \
+            --with-ld-opt='-static -flto=auto -fprofile-use -fprofile-dir=/tmp/pgo-data'
 
           #--with-zlib-opt='--static' \
           #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
