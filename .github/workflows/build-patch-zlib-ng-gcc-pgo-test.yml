@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-ame: build nginx-patch with zlib-ng gcc (test) with PGO (Profile Guided Optimization) enabled
+name: build nginx-patch with zlib-ng gcc (test) with PGO (Profile Guided Optimization) enabled
 
 # Controls when the action will run. 
 on:
