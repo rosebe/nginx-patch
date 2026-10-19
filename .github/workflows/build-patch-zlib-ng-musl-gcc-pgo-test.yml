@@ -226,6 +226,7 @@ jobs:
           # 2. 彻底净化环境：不在命令头强加变量，完全使用 Nginx 官方标准的参数形式。
           # 这样 Nginx 在测试 getaddrinfo 时就不会发生符号污染，100% 能够配置成功。
           # 2. 纯净配置阶段：在这里彻底隐藏所有干扰项，确保 getaddrinfo 100% 通过
+          
           ./auto/configure \
             --with-cc=musl-gcc \
             --prefix=/etc/nginx \
@@ -273,22 +274,20 @@ jobs:
             --with-pcre-jit \
             --with-zlib=../zlib-ng \
             --with-zlib-opt='--zlib-compat' \
-            --build="Commit ID: \$(git rev-parse --short HEAD). Openssl_Commit_ID: aecccf9 . Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on \$(date +%Y_%m_%d-%H:%M:%S)"
+            --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: aecccf9 . Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)"
           
-          # 3. 黄金注入：既然 musl-gcc 裸跑 PGO 的第一阶段会有 libgcov 符号死锁，
-          # 那么在第一阶段（插桩数据收集）中，我们暂时不加 `-static` 选项，让其动态调用（走 glibc），
-          # 这样 Nginx 在当前的 GitHub Actions 宿主机上就能 100% 成功生成带有插桩埋点的二进制文件！
-          # 等到了第二阶段（Final Build），我们再一口气开启 `-static` 与 `-flto=auto`，实现真正的极致全静态。
+          # 3. 黄金注入：利用精确的 sed 动态注入，保证第一阶段在宿主机中 100% 编译出数据插桩埋点二进制
           sed -i 's|CFLAGS = |CFLAGS = -O3 -march=x86-64 -fprofile-generate=/tmp/pgo-data |g' objs/Makefile
           sed -i 's|MAIN_LINK = |MAIN_LINK = -fprofile-generate=/tmp/pgo-data |g' objs/Makefile
           
-          # 4. 开启并发编译，开始真正全速构建
-          make -j\$(nproc --all)
-
-          /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx -V
-                    
+          # 4. 核心修复：移除反斜杠转义，使用标准 Shell 语法进行多核并发编译
+          make -j$(nproc)
+          
+          # 5. 验证版本输出（修复为你当前步骤实际的 Nginx 源码路径）
+          ./objs/nginx -V
+          
           echo ""
-          echo "第一阶段插桩编译（Instrument Build）圆满成功！"
+          echo "第一阶段：数据插桩编译（Instrument Build）彻底大功告成！"
           echo ""
           
       - name: Stage 2 - Full Scenario Training (PGO)
