@@ -210,7 +210,7 @@ jobs:
           CXX: musl-g++
         
         run: |
-          git clone https://github.com/nginx
+          https://github.com/nginx/nginx.git
           cd nginx
           echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
           
