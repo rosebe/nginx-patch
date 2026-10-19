@@ -266,6 +266,7 @@ jobs:
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
+            --without-http_gzip_module \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: aecccf9 . Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)"
           
           # 3. 终极黑魔法：绕过 Nginx 检测后，直接向 objs/Makefile 强制追加你所需的所有性能和 PGO 优化参数！
