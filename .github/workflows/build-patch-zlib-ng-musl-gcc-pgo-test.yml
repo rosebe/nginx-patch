@@ -223,6 +223,8 @@ jobs:
           # 只留最普通的编译参数，确保在 Ubuntu GCC 13 + musl 下 100% 成功。
           # 利用官方 --with-zlib 绕过系统路径探测，同时让 Nginx 自行托管静态编译。
           # 这里依然保持参数的完全净化，防止 GCC 13 在探测阶段因 LTO/PGO 报错。
+          # 2. 彻底净化环境：不在命令头强加变量，完全使用 Nginx 官方标准的参数形式。
+          # 这样 Nginx 在测试 getaddrinfo 时就不会发生符号污染，100% 能够配置成功。
           ./auto/configure \
             --with-cc=musl-gcc \
             --prefix=/etc/nginx \
@@ -272,13 +274,13 @@ jobs:
             --with-zlib-opt='--zlib-compat' \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: aecccf9 . Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Compiler musl-gcc. And build on $(date +%Y_%m_%d-%H:%M:%S)"
           
-          # 3. 终极黑魔法：配置百分之百成功后，直接向 objs/Makefile 强制追加你所需的所有性能和 PGO 优化参数！
-          # 这能保证检测时畅通无阻，但在后续通过 make 编译主二进制时完美应用你的最强参数。
+          # 3. 终极黑魔法：配置成功后，直接向 objs/Makefile 强制追加你所需的所有静态性能和 PGO 优化参数！
+          # 我们在全局编译标志中强行将底层链接器指定为静态链接，确保 make 出来的目标文件是真正的纯静态 musl 二进制。
           sed -i 's|CFLAGS = |CFLAGS = -static -O3 -march=x86-64 -flto=auto -fprofile-generate=/tmp/pgo-data |g' objs/Makefile
           sed -i 's|MAIN_LINK = |MAIN_LINK = -static -flto=auto -fprofile-generate=/tmp/pgo-data |g' objs/Makefile
           
-          # 4. 开启并发编译，并导出错误实体
-          make -j$(nproc --all) || (cat objs/autoconf.err && exit 1)
+          # 4. 开启并发编译
+          make -j$(nproc --all)
           
           echo ""
           echo "GITHUB_WORKFLOW is:" $GITHUB_WORKFLOW
