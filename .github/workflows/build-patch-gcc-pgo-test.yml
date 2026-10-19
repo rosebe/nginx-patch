@@ -264,22 +264,54 @@ jobs:
             timeout 30s bash -c 'until nc -z localhost 50051; do sleep 1; done' || echo "⚠️ gRPC 后端启动超时"
 
 
-            # 5. [插桩启动 - 核心修正：启动前导出变量]
-            echo ">> 启动插桩版 Nginx (Path: /tmp/pgo-data)..."
-            export GCOV_PREFIX="/tmp/pgo-data"
-            export GCOV_PREFIX_STRIP=0
-            # 使用 -E 传递环境变量给 sudo 
-            sudo -E "$NGINX_BIN" -p /tmp/pgo-run -c /tmp/pgo-run/pgo.conf > /tmp/pgo-run/logs/stdout.log 2>&1 &
-            NGINX_PID=$!
             
-            # [重要：等待 Nginx 端口就绪]
-            echo ">> 等待 Nginx (8081) 就绪..."
-            timeout 10s bash -c 'until nc -z localhost 8081; do sleep 1; done' || exit 1
-
             
             #sleep 5
             #kill -0 $NGINX_PID || { cat /tmp/pgo-run/logs/stdout.log; exit 1; }
 
+            # 5. [插桩启动 - 动态覆盖 daemon 状态并捕获闪退日志]
+            echo ">> 正在全面放开 PGO 数据目录权限..."
+            sudo chmod -R 777 /tmp/pgo-data /tmp/pgo-run
+            
+            echo ">> 启动插桩版 Nginx (Path: /tmp/pgo-data)..."
+            export GCOV_PREFIX="/tmp/pgo-data"
+            export GCOV_PREFIX_STRIP=3
+            
+            # 先行校验语法，确保配置文件里的证书、GeoIP 路径完全正确
+            if ! $NGINX_BIN -t -c /tmp/pgo-run/pgo.conf -g "daemon on;"; then
+                echo "❌ Nginx 配置文件语法或路径校验失败！"
+                exit 1
+            fi
+
+            # 【核心修正】通过 -g "daemon on;" 强制覆盖文件中的 daemon off，让 Nginx 真正安全地进入后台守护进程模式
+            $NGINX_BIN -c /tmp/pgo-run/pgo.conf -g "daemon on;" > /tmp/nginx-start.log 2>&1
+            
+            # 动态获取真正写入 pid 文件的 Nginx Master 进程 PID
+            sleep 1
+            if [ -f "/tmp/pgo-run/nginx.pid" ]; then
+                NGINX_PID=$(cat /tmp/pgo-run/nginx.pid)
+                echo ">> ✅ Nginx 成功拉起，Master PID: $NGINX_PID"
+            else
+                echo "⚠️ 未找到 pid 文件，尝试动态检索进程..."
+                NGINX_PID=$(pgrep -o nginx || true)
+            fi
+
+            # 6. [端口就绪轮询]
+            echo ">> 等待 Nginx (8081) 就绪..."
+            COUNT=0
+            while ! nc -z 127.0.0.1 8081; do
+                sleep 1
+                COUNT=$((COUNT + 1))
+                if [ $COUNT -ge 6 ]; then
+                    echo "❌ Nginx 端口就绪超时！以下是 Nginx 的错误日志： "
+                    cat /tmp/nginx-start.log || true
+                    cat /tmp/pgo-run/logs/error.log 2>/dev/null || echo "未找到 error.log"
+                    exit 1
+                fi
+            done
+            echo ">> ✅ Nginx (8081) 已成功就绪！开始进入压测收割流程..."
+
+            
             # 6. [精准压测]
             # A. Stream 压测优化
             echo ">>  Stream 压测优化..."
