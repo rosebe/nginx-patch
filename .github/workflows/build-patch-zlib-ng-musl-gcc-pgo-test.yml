@@ -214,6 +214,9 @@ jobs:
           
           # 1. 彻底清理残留
           rm -rf objs/
+          rm -rf /tmp/pgo-run /tmp/pgo-data
+          mkdir -p /tmp/pgo-run/{proto,geoip,logs,client_body_temp,proxy_temp,fastcgi_temp,uwsgi_temp,scgi_temp} /tmp/pgo-data
+          chmod -R 777 /tmp/pgo-run /tmp/pgo-data
           
           # 2. 完美对齐配置：通过 --with-openssl-opt 强制让 OpenSSL 也在编译时全量带上 PGO 插桩标志。
           # 在第一阶段（数据收集）中，我们暂时不开启 -flto 链接时优化，防止跨库内联失败，确保 100% 产出埋点二进制。
