@@ -210,11 +210,11 @@ jobs:
           CXX: musl-g++
         
         run: |
-          git clone https://github.com
+          git clone https://github.com/nginx
           cd nginx
           echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
           
-          curl https://githubusercontent.com | patch --verbose -p 1
+          curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
           
           # 1. 彻底斩断并清理上一次可能失败的残留缓存
           rm -rf objs/
