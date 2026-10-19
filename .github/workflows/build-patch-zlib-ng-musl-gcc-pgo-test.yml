@@ -262,7 +262,7 @@ jobs:
             --with-stream_ssl_preread_module \
             --add-module=../ngx_brotli \
             --with-openssl=../openssl \
-            --with-openssl-opt='no-shared no-comp enable-tls1_3 -O3 -march=x86-64 -fprofile-generate=/tmp/pgo-data' \
+            --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
             --with-zlib=../zlib-ng \
