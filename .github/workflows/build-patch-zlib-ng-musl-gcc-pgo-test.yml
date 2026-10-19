@@ -72,7 +72,7 @@ jobs:
       
       - name: Install musl toolchain
         run: |
-          sudo apt-get install -y musl-tools linux-libc-dev
+          sudo apt-get install -y  musl musl-dev musl-tools linux-libc-dev
           # 核心修复：将 Linux 内核头文件软链接到 musl 的搜索路径中，防止符号污染
           sudo ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
           sudo ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic
