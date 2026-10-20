@@ -339,6 +339,11 @@ jobs:
                 exit 1
             fi
 
+            # Nginx 配置文件
+            echo ">> Nginx 配置文件... "
+            "$NGINX_BIN" -T
+            echo "Nginx 配置文件结束"         
+
 
             # 6. [精准压测]
             # A. Stream 压测优化
