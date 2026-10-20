@@ -276,13 +276,19 @@ jobs:
             timeout 30s bash -c 'until nc -z localhost 50051; do sleep 1; done' || echo "⚠️ gRPC 后端启动超时"
            
 
+            # 检测配置文件
+            sudo chmod +x /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+            sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -V
+            sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -t -c /tmp/pgo-run/pgo.conf
+            
             # 5. [插桩启动 - 核心修正：启动前导出变量]
             echo ">> 启动插桩版 Nginx (Path: /tmp/pgo-data)..."
             export GCOV_PREFIX="/tmp/pgo-data"
             export GCOV_PREFIX_STRIP=0
+
             
             # 使用 -E 传递环境变量给 sudo 
-            sudo -E "$NGINX_BIN" -p /tmp/pgo-run -c /tmp/pgo-run/pgo.conf > /tmp/pgo-run/logs/stdout.log 2>&1 &
+            sudo -E  /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -p /tmp/pgo-run -c /tmp/pgo-run/pgo.conf > /tmp/pgo-run/logs/stdout.log 2>&1 &
             NGINX_PID=$!
 
            
