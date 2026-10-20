@@ -279,19 +279,10 @@ jobs:
 
            
 
-            # 6. [端口就绪轮询]
+            # [重要：等待 Nginx 端口就绪]
             echo ">> 等待 Nginx (8081) 就绪..."
-            COUNT=0
-            while ! nc -z 127.0.0.1 8081; do
-                sleep 1
-                COUNT=$((COUNT + 1))
-                if [ $COUNT -ge 15 ]; then
-                    echo "❌ Nginx 端口就绪超时！以下是 Nginx 的错误日志： "
-                    cat /tmp/nginx-start.log || true
-                    cat /tmp/pgo-run/logs/error.log 2>/dev/null || echo "未找到 error.log"
-                    exit 1
-                fi
-            done
+            timeout 10s bash -c 'until nc -z localhost 8081; do sleep 1; done' || exit 1
+            
             echo ">> ✅ Nginx (8081) 已成功就绪！开始进入压测收割流程..."
 
             
