@@ -164,8 +164,14 @@ jobs:
           # 1. 彻底清理残留
           rm -rf objs/
           rm -rf /tmp/pgo-run /tmp/pgo-data
+          rm -rf /tmp/pgo-data/*
           mkdir -p /tmp/pgo-run/{proto,geoip,logs,client_body_temp,proxy_temp,fastcgi_temp,uwsgi_temp,scgi_temp} /tmp/pgo-data
           chmod -R 777 /tmp/pgo-run /tmp/pgo-data
+
+          # 确保编译期间环境变量是干净的
+          unset GCOV_PREFIX
+          unset GCOV_PREFIX_STRIP
+         
           
           ./auto/configure \
             --prefix=/etc/nginx \
@@ -240,6 +246,7 @@ jobs:
             # 2. [环境整备]
             sudo apt-get update && sudo apt-get install -y wrk openssl bc
             rm -rf /tmp/pgo-run /tmp/pgo-data
+            rm -rf /tmp/pgo-data/*
             mkdir -p /tmp/pgo-run/{proto,geoip,logs,client_body_temp,proxy_temp,fastcgi_temp,uwsgi_temp,scgi_temp} /tmp/pgo-data
             chmod -R 777 /tmp/pgo-run /tmp/pgo-data
 
@@ -273,6 +280,7 @@ jobs:
             echo ">> 启动插桩版 Nginx (Path: /tmp/pgo-data)..."
             export GCOV_PREFIX="/tmp/pgo-data"
             export GCOV_PREFIX_STRIP=0
+            
             # 使用 -E 传递环境变量给 sudo 
             sudo -E "$NGINX_BIN" -p /tmp/pgo-run -c /tmp/pgo-run/pgo.conf > /tmp/pgo-run/logs/stdout.log 2>&1 &
             NGINX_PID=$!
