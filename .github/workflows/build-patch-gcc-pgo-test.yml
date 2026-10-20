@@ -292,7 +292,7 @@ jobs:
             #NGINX_PID=$!               
             
             # 动态获取真正写入 pid 文件的 Nginx Master 进程 PID
-            sleep 1
+            sleep 3
             if [ -f "/tmp/pgo-run/nginx.pid" ]; then
                 NGINX_PID=$(cat /tmp/pgo-run/nginx.pid)
                 echo ">> ✅ Nginx 成功拉起，Master PID: $NGINX_PID"
@@ -307,7 +307,7 @@ jobs:
             while ! nc -z 127.0.0.1 8081; do
                 sleep 1
                 COUNT=$((COUNT + 1))
-                if [ $COUNT -ge 6 ]; then
+                if [ $COUNT -ge 15 ]; then
                     echo "❌ Nginx 端口就绪超时！以下是 Nginx 的错误日志： "
                     cat /tmp/nginx-start.log || true
                     cat /tmp/pgo-run/logs/error.log 2>/dev/null || echo "未找到 error.log"
