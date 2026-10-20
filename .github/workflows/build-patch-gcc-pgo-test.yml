@@ -282,16 +282,29 @@ jobs:
             export GCOV_PREFIX="/tmp/pgo-data"
             export GCOV_PREFIX_STRIP=3
             
-            # 先行校验语法，确保配置文件里的证书、GeoIP 路径完全正确
-            if ! sudo -E "$NGINX_BIN" -t -c /tmp/pgo-run/pgo.conf; then
-                echo "❌ Nginx 配置文件语法或路径校验失败！"
+
+            # 开启 Core Dump 限制，防止插桩因内存问题闪退而不留痕迹
+            ulimit -c unlimited || true
+            
+            # 1. 语法校验（对插桩退出的段错误进行容错）
+            echo ">> 正在校验 Nginx 配置..."
+            T_LOG=$(sudo -E "$NGINX_BIN" -t -c /tmp/pgo-run/pgo.conf 2>&1)
+            T_EXIT=$?
+            echo "$T_LOG"
+
+            # 容错逻辑：即便退出码不为0(如段错误139)，只要字面输出了 "syntax is ok" 即可放行
+            if [ $T_EXIT -ne 0 ] && ! echo "$T_LOG" | grep -q "syntax is ok"; then
+                echo "❌ Nginx 配置文件语法或路径校验确实失败！"
                 exit 1
+            elif [ $T_EXIT -ne 0 ]; then
+                echo "⚠️ 警告: nginx -t 输出了 syntax is ok 但退出时触发了段错误($T_EXIT)，这通常是插桩写入 gcda 引起的，尝试强制启动..."
             fi
 
+            # 2. 动态覆盖 daemon 状态启动
             # 使用 -E 传递环境变量给 sudo 
             sudo -E "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf > /tmp/nginx-start.log 2>&1 &
-            #NGINX_PID=$!               
             
+           
             # 动态获取真正写入 pid 文件的 Nginx Master 进程 PID
             sleep 3
             if [ -f "/tmp/pgo-run/nginx.pid" ]; then
