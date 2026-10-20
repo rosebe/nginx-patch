@@ -42,10 +42,10 @@ jobs:
           sudo apt-get update
           sudo apt-get upgrade 
           sudo apt-get install build-essential ca-certificates \
-                               zlib1g-dev libpcre3 libpcre3-dev libssl-dev \
+                               zlib1g-dev libssl-dev \
                                git cmake ninja-build gnupg2 lsb-release libunwind-dev \
                                tar unzip  wget curl tree perl-base
-          sudo apt-get install -y libc6-dev libpcre3-dev zlib1g-dev
+          sudo apt-get install -y libc6-dev zlib1g-dev
           
           #sudo apt-get install -y libc6-dev libpcre3-dev zlib1g-dev libstdc++-staticgcc g++-static
       # 注意：某些高版本 Ubuntu 移除了 glibc 的静态库，全静态链接可能会提示找不到 -lc 或 -lpthread
