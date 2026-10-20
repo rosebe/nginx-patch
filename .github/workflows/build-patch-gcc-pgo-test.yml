@@ -289,7 +289,8 @@ jobs:
             fi
 
             # 【核心修正】通过 -g "daemon on;" 强制覆盖文件中的 daemon off，让 Nginx 真正安全地进入后台守护进程模式
-            $NGINX_BIN -c /tmp/pgo-run/pgo.conf -g "daemon on;" > /tmp/nginx-start.log 2>&1
+            $NGINX_BIN -c /tmp/pgo-run/pgo.conf > /tmp/nginx-start.log 2>&1 &
+                 
             
             # 动态获取真正写入 pid 文件的 Nginx Master 进程 PID
             sleep 1
