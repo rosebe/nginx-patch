@@ -282,17 +282,17 @@ jobs:
             #sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -t -c /tmp/pgo-run/pgo.conf
             
             # ==========================================
-            # 5. [插桩启动 - 动态覆盖 daemon/user 状态并捕获闪退日志]
+            # 5. [插桩启动 - 强力覆盖全局指令以规避环境冲突崩溃]
             # ==========================================
             echo ">> 正在全面清理并放开 PGO 数据目录权限..."
             sudo rm -rf /tmp/pgo-data/*
             sudo chmod -R 777 /tmp/pgo-data /tmp/pgo-run
             
-            # 💡 额外防御：显式在环境中创建 nginx 用户与用户组，彻底断绝 getpwnam 失败
+            # 创建系统兜底用户，防止 Nginx 核心加载由于残留硬编码触发异常
             sudo useradd -M -s /usr/sbin/nologin nginx 2>/dev/null || true
             
-            echo ">> 校验 Nginx 配置文件语法 (同时动态覆盖工作用户为 root)..."
-            # 通过 -g "user root;" 绕过原本配置里找不到 "nginx" 用户的致命报错
+            echo ">> 校验 Nginx 配置文件语法 (强行注入 user root 防闪退)..."
+            # 💡 关键点 1：通过 -g 注入 'user root;' 彻底根除 getpwnam("nginx") failed 报错
             T_LOG=$(sudo "$NGINX_BIN" -t -c /tmp/pgo-run/pgo.conf -g "user root;" 2>&1 || true)
             echo "$T_LOG"
             
@@ -303,15 +303,17 @@ jobs:
                 echo "⚠️ 语法校验成功通过。"
             fi
             
-            # 在正式启动前，再次彻底清空 root 用户在测试期间生成的被锁死的临时 gcda 文件
+            # 正式压测前，再次深度重置数据目录
             sudo rm -rf /tmp/pgo-data/*
             
-            echo ">> 正式拉起插桩版 Nginx (通过全局指令覆盖 user/daemon/master 状态)..."
-            # 💡 终极修正：
-            # 1. -g "user root;" 解决 getpwnam("nginx") failed 导致的闪退
-            # 2. -g "daemon off; master_process off;" 关闭多进程 fork，规避 libgcov 锁冲突引发的段错误
+            echo ">> 正式拉起插桩版 Nginx (通过三合一全局指令覆盖底层执行状态)..."
+            # 💡 关键点 2：三合一强力覆盖指令
+            # - user root;: 绕过配置文件缺失 nginx 用户的系统报错
+            # - daemon off;: 让 Nginx 在前台运行以被当前后台拦截器截获日志
+            # - master_process off; worker_processes 1;: 强行将 worker 降级为单进程，彻底解决 libgcov 退出时的段错误
             sudo -E env GCOV_PREFIX="/tmp/pgo-data" GCOV_PREFIX_STRIP=3 \
-                "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf -g "user root; daemon off; master_process off;" > /tmp/nginx-start.log 2>&1 &
+                "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf \
+                -g "user root; daemon off; master_process off; worker_processes 1;" > /tmp/nginx-start.log 2>&1 &
             
             # 动态获取真正运行的 Nginx 进程 PID
             sleep 4
@@ -320,17 +322,18 @@ jobs:
             if [ -n "$NGINX_PID" ]; then
                 echo ">> ✅ Nginx 成功拉起，运行 PID: $NGINX_PID"
             else
-                echo "❌ Nginx 正式启动失败，未捕获到进程！启动日志/崩溃堆栈如下："
+                echo "❌ Nginx 正式启动失败，未捕获到进程！崩溃日志如下："
                 cat /tmp/nginx-start.log
                 exit 1
             fi
             
-            # 闪退守卫：检查进程是否依然存活
+            # 闪退守卫
             if ! kill -0 "$NGINX_PID" 2>/dev/null; then
                 echo "❌ Nginx 刚拉起就在后台闪退了！崩溃日志如下："
                 cat /tmp/nginx-start.log
                 exit 1
             fi
+
 
             # 6. [精准压测]
             # A. Stream 压测优化
