@@ -283,12 +283,13 @@ jobs:
             export GCOV_PREFIX_STRIP=3
             
             # 先行校验语法，确保配置文件里的证书、GeoIP 路径完全正确
-            if ! $NGINX_BIN -t -c /tmp/pgo-run/pgo.conf; then
+            if ! sudo -E "$NGINX_BIN" -t -c /tmp/pgo-run/pgo.conf; then
                 echo "❌ Nginx 配置文件语法或路径校验失败！"
                 exit 1
             fi
 
-            $NGINX_BIN -c /tmp/pgo-run/pgo.conf > /tmp/nginx-start.log 2>&1 &
+            # 使用 -E 传递环境变量给 sudo 
+            sudo -E "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf > /tmp/nginx-start.log 2>&1 &
             #NGINX_PID=$!               
             
             # 动态获取真正写入 pid 文件的 Nginx Master 进程 PID
@@ -297,8 +298,16 @@ jobs:
                 NGINX_PID=$(cat /tmp/pgo-run/nginx.pid)
                 echo ">> ✅ Nginx 成功拉起，Master PID: $NGINX_PID"
             else
-                echo "⚠️ 未找到 pid 文件，尝试动态检索进程..."
-                NGINX_PID=$(pgrep -o nginx || true)
+                echo "⚠️ 未找到 pid 文件，尝试根据配置文件动态检索精确进程..."
+                # 避免 pgrep -o 抓错机器上其他正在运行的正式版 Nginx 进程
+                NGINX_PID=$(pgrep -f "/tmp/pgo-run/pgo.conf" | head -n 1 || true)
+            fi
+
+            #  闪退即时二次校验：如果在 sleep 3 秒后进程其实已经挂了，立即打印日志报错
+            if [ -z "$NGINX_PID" ] || ! kill -0 "$NGINX_PID" 2>/dev/null; then
+                echo "❌ Nginx 刚刚拉起就闪退了！崩溃日志如下："
+                tail -n 20 /tmp/nginx-start.log
+                exit 1
             fi
 
             # 6. [端口就绪轮询]
