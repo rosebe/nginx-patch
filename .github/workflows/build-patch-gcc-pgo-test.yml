@@ -281,57 +281,49 @@ jobs:
             #sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -V
             #sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -t -c /tmp/pgo-run/pgo.conf
             
-            # 5. [插桩启动 - 核心修正：启动前导出变量]
-            echo ">> 启动插桩版 Nginx (Path: /tmp/pgo-data)..."
-            #export GCOV_PREFIX="/tmp/pgo-data"
-            #export GCOV_PREFIX_STRIP=0
-
-            
-            # 使用 -E 传递环境变量给 sudo 
-            #sudo -E  /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -p /tmp/pgo-run -c /tmp/pgo-run/pgo.conf > /tmp/pgo-run/logs/stdout.log 2>&1 &
-            #NGINX_PID=$!
-
             # ==========================================
-            # 5. [插桩启动 - 动态覆盖 daemon 状态并捕获闪退日志]
+            # 5. [插桩启动 - 动态覆盖 daemon/master 状态并捕获闪退日志]
             # ==========================================
             echo ">> 正在全面清理并放开 PGO 数据目录权限..."
             sudo rm -rf /tmp/pgo-data/*
             sudo chmod -R 777 /tmp/pgo-data /tmp/pgo-run
-          
+            
             echo ">> 校验 Nginx 配置文件语法 (对编译期硬编码的 GCOV 段错误进行容错)..."
-            # 💡 关键点 1：把输出拦截下来。只要看到了 "syntax is ok"，哪怕程序最后因为 gcda 写入报了段错误，我们也认为校验通过。
             T_LOG=$(sudo "$NGINX_BIN" -t -c /tmp/pgo-run/pgo.conf 2>&1 || true)
             echo "$T_LOG"
-          
+            
             if ! echo "$T_LOG" | grep -q "syntax is ok"; then
                 echo "❌ Nginx 配置文件语法或路径确实存在配置错误！"
                 exit 1
             else
                 echo "⚠️ 语法校验成功通过。后续的退出段错误已自动安全隔离。"
             fi
-          
-            # 💡 关键点 2：在正式启动前，再次彻底清空 root 用户在测试期间生成的被锁死的临时 gcda 文件
+            
+            # 在正式启动前，再次彻底清空 root 用户在测试期间生成的被锁死的临时 gcda 文件
             sudo rm -rf /tmp/pgo-data/*
-          
-            echo ">> 正式拉起插桩版 Nginx..."
-            # 配合 -g "daemon off;" 动态覆盖，将生存期错误捕获至 start.log
+            
+            echo ">> 正式拉起插桩版 Nginx (通过指令关闭 daemon 和 master 模式)..."
+            # 💡 核心修正：加入 -g "daemon off; master_process off;"
+            # 强制 Nginx 作为纯粹的前台单进程运行，避免因为 fork 多进程导致 libgcov 爆段错误崩溃
             sudo -E env GCOV_PREFIX="/tmp/pgo-data" GCOV_PREFIX_STRIP=3 \
-                "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf > /tmp/nginx-start.log 2>&1 &
-          
-            # 动态获取真正运行的 Nginx Master 进程 PID
-            sleep 3
-            if [ -f "/tmp/pgo-run/nginx.pid" ]; then
-                NGINX_PID=$(cat /tmp/pgo-run/nginx.pid)
-                echo ">> ✅ Nginx 成功拉起，Master PID: $NGINX_PID"
+                "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf -g "daemon off; master_process off;" > /tmp/nginx-start.log 2>&1 &
+            
+            # 动态获取真正运行的 Nginx 进程 PID
+            sleep 4
+            NGINX_PID=$(pgrep -f "/tmp/pgo-run/pgo.conf" | head -n 1 || true)
+            
+            if [ -n "$NGINX_PID" ]; then
+                echo ">> ✅ Nginx 成功拉起，运行 PID: $NGINX_PID"
             else
-                echo "⚠️ 未找到 pid 文件，尝试根据配置文件特征检索进程..."
-                NGINX_PID=$(pgrep -f "/tmp/pgo-run/pgo.conf" | head -n 1 || true)
+                echo "❌ Nginx 正式启动失败，未捕获到进程！启动日志/崩溃堆栈如下："
+                cat /tmp/nginx-start.log
+                exit 1
             fi
-          
-            # 闪退守卫：如果进程未成功常驻，直接抛错并提取日志
-            if [ -z "$NGINX_PID" ] || ! kill -0 "$NGINX_PID" 2>/dev/null; then
-                echo "❌ Nginx 正式启动失败或发生了闪退！崩溃日志如下："
-                tail -n 40 /tmp/nginx-start.log
+            
+            # 闪退守卫：检查进程是否依然存活
+            if ! kill -0 "$NGINX_PID" 2>/dev/null; then
+                echo "❌ Nginx 刚拉起就在后台闪退了！崩溃日志如下："
+                cat /tmp/nginx-start.log
                 exit 1
             fi
 
