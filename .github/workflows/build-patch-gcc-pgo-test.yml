@@ -316,7 +316,7 @@ jobs:
             echo ">> 正式拉起插桩版 Nginx..."
             # 配合 -g "daemon off;" 动态覆盖，将生存期错误捕获至 start.log
             sudo -E env GCOV_PREFIX="/tmp/pgo-data" GCOV_PREFIX_STRIP=3 \
-                "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf -g "daemon off;" > /tmp/nginx-start.log 2>&1 &
+                "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf > /tmp/nginx-start.log 2>&1 &
           
             # 动态获取真正运行的 Nginx Master 进程 PID
             sleep 3
