@@ -345,7 +345,7 @@ jobs:
 
             # Nginx 配置文件
             echo ">> ✅ Nginx 配置文件... "
-            "$NGINX_BIN" -T
+            sudo "$NGINX_BIN" -T
             echo "✅ Nginx 配置文件结束"         
 
 
