@@ -345,7 +345,9 @@ jobs:
 
             # Nginx 配置文件
             echo ">> ✅ Nginx 配置文件... "
-            sudo "$NGINX_BIN" -T
+            sudo "$NGINX_BIN" -c /tmp/pgo-run/pgo.conf \
+                     -g "user root; daemon off; worker_processes auto;" \
+                     -T 
             echo "✅ Nginx 配置文件结束"         
 
 
