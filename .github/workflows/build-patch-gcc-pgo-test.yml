@@ -268,12 +268,6 @@ jobs:
             echo ">> 等待 gRPC 后端 (50051) 就绪..."
             timeout 30s bash -c 'until nc -z localhost 50051; do sleep 1; done' || echo "⚠️ gRPC 后端启动超时"
            
-           
-
-            # 5. [插桩启动 - 动态覆盖 daemon 状态并捕获闪退日志]
-            echo ">> 正在全面放开 PGO 数据目录权限..."
-            sudo chmod -R 777 /tmp/pgo-data /tmp/pgo-run
-                     
 
             # 5. [插桩启动 - 核心修正：启动前导出变量]
             echo ">> 启动插桩版 Nginx (Path: /tmp/pgo-data)..."
