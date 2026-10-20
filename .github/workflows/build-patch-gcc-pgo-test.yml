@@ -283,14 +283,13 @@ jobs:
             export GCOV_PREFIX_STRIP=3
             
             # 先行校验语法，确保配置文件里的证书、GeoIP 路径完全正确
-            if ! $NGINX_BIN -t -c /tmp/pgo-run/pgo.conf -g "daemon on;"; then
+            if ! $NGINX_BIN -t -c /tmp/pgo-run/pgo.conf; then
                 echo "❌ Nginx 配置文件语法或路径校验失败！"
                 exit 1
             fi
 
-            # 【核心修正】通过 -g "daemon on;" 强制覆盖文件中的 daemon off，让 Nginx 真正安全地进入后台守护进程模式
             $NGINX_BIN -c /tmp/pgo-run/pgo.conf > /tmp/nginx-start.log 2>&1 &
-                 
+            #NGINX_PID=$!               
             
             # 动态获取真正写入 pid 文件的 Nginx Master 进程 PID
             sleep 1
