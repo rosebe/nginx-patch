@@ -85,7 +85,7 @@ jobs:
            echo "musl-gcc --version"
            musl-gcc --version
            echo "musl-g++ --version"
-           musl-g++ --version
+           musl-g++ --version | true
       
       - name: openssl
         env: 
