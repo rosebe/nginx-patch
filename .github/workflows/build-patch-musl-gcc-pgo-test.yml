@@ -285,7 +285,6 @@ jobs:
             --with-stream_realip_module \
             --with-stream_ssl_module \
             --with-stream_ssl_preread_module \
-            --add-module=../zstd-nginx-module \
             --add-module=../ngx_brotli \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
@@ -565,7 +564,6 @@ jobs:
             --with-stream_realip_module \
             --with-stream_ssl_module \
             --with-stream_ssl_preread_module \
-            --add-module=../zstd-nginx-module \
             --add-module=../ngx_brotli \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
