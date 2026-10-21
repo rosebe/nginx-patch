@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: build nginx-patch with gcc (test) with PGO (Profile Guided Optimization) enabled
+name: build nginx-patch with Compiler-GCC and PGO (Profile Guided Optimization) enabled (test)
 
 # Controls when the action will run. 
 on:
@@ -120,7 +120,34 @@ jobs:
           git pull
           git submodule update --init --recursive
           cd ..
-
+    
+      
+      - name: zlib-ng [Pre-configure zlib-ng]
+        #env:
+          #CC: musl-gcc
+          #CXX: musl-g++
+        run: |
+          #git clone --branch develop https://github.com/zlib-ng/zlib-ng.git
+          git clone https://github.com/zlib-ng/zlib-ng.git
+          cd zlib-ng 
+          
+          # 核心注入：修改默认配置，强行将原生 API 切换为 zlib 1.x 兼容接口
+          #sed -i 's/compat=0/compat=1/g' configure
+          
+          # 核心注入：必须开启兼容模式，且伪装成原生配置脚本
+          #./configure --zlib-compat
+          # 核心修复：指定绝对安装路径，开启静态与兼容模式
+          ./configure --static --zlib-compat --prefix=/tmp/zlib-ng
+          
+          #make -j$(nproc --all) libz.a
+          make -j$(nproc --all)
+          # 必须执行 install，将文件规范化输出到 /tmp/zlib-ng
+          make install  # 必须执行 install，将文件规范化输出到 /tmp/zlib-ng
+          cd ..
+          
+          #...
+          #auto/configure --with-cc-opt=-I/path/zlib-ng/include --with-ld-opt=-L/path/zlib-ng/lib
+      
       - name: zstd 
         run: |
           git clone https://github.com/tokers/zstd-nginx-module.git
@@ -143,14 +170,7 @@ jobs:
           #git pull
           ./autogen.sh
           cd ..
-
-      #- name: Set up GCC
-        #uses: egor-tensin/setup-gcc@v1.3
-        #with:
-         #version: 12
-         #platform: x64
-         
-                        
+           
       # --- 第一阶段：插桩编译 (Instrument Build) ---
       - name: Stage 1 - Instrument Build
         run: |
@@ -217,14 +237,13 @@ jobs:
             --add-module=../ngx_brotli \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
-            --with-zlib=../zlib-cf \
             --with-http_v3_module \
             --add-module=../ngx_http_geoip2_module \
             --with-openssl=../openssl  \
             --with-openssl-opt='no-comp no-shared enable-tls1_3' \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-O3 -march=x86-64-v3 -flto=auto -fprofile-generate=/tmp/pgo-data' \
-            --with-ld-opt='-flto=auto -fprofile-generate=/tmp/pgo-data'
+            --with-cc-opt='-I/tmp/zlib-ng/include -O3 -march=x86-64-v3 -flto=auto -fprofile-generate=/tmp/pgo-data' \
+            --with-ld-opt='-L/tmp/zlib-ng/lib -flto=auto -fprofile-generate=/tmp/pgo-data'
 
             #--with-cc-opt='-static -static-libgcc -O3 -march=x86-64-v3 -flto=auto -fprofile-generate=/tmp/pgo-data' \
             #--with-ld-opt='-static -flto=auto -fprofile-generate=/tmp/pgo-data'
@@ -473,14 +492,13 @@ jobs:
             --add-module=../ngx_brotli \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
-            --with-zlib=../zlib-cf \
             --with-http_v3_module \
             --add-module=../ngx_http_geoip2_module \
             --with-openssl=../openssl  \
             --with-openssl-opt='no-comp no-shared enable-tls1_3' \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. PGO (Profile Guided Optimization) enabled. compatible x86-64. And build on $(date +%Y_%m_%d-%H:%M:%S)" \
-            --with-cc-opt='-static -static-libgcc -O3 -march=x86-64-v3 -flto=auto -fprofile-use -fprofile-correction -fprofile-dir=/tmp/pgo-data' \
-            --with-ld-opt='-static -flto=auto -fprofile-use -fprofile-dir=/tmp/pgo-data'
+            --with-cc-opt='-static -I/tmp/zlib-ng/include -static-libgcc -O3 -march=x86-64-v3 -flto=auto -fprofile-use -fprofile-correction -fprofile-dir=/tmp/pgo-data' \
+            --with-ld-opt='-static -L/tmp/zlib-ng/lib -flto=auto -fprofile-use -fprofile-dir=/tmp/pgo-data'
                         
             
             #--with-cc-opt='-static -static-libgcc -Ofast -march=x86-64-v4 -flto=auto -fprofile-use -fprofile-correction -fprofile-dir=/tmp/pgo-data' \
