@@ -72,12 +72,12 @@ jobs:
           sudo apt-get install -y musl musl-dev musl-tools linux-libc-dev
           # 核心修复：将 Linux 内核头文件软链接到 musl 的搜索路径中，防止符号污染
           
-          sudo ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
-          sudo ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic
+          #sudo ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
+          #sudo ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic
           
           ###sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
           
-          sudo ln -sf /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm
+          #sudo ln -sf /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm
             
       - name: Verify installation
         run: |
@@ -195,11 +195,16 @@ jobs:
           #cd ..
       
       - name: GeoLite2
+        env:
+          CC: musl-gcc
+          CXX: musl-g++
         run: |
           git clone https://github.com/leev/ngx_http_geoip2_module.git
           cd ngx_http_geoip2_module
           git checkout .
           git pull
+          ./configure --add-module=/path/to/ngx_http_geoip2_module --with-stream
+          make -j$(nproc --all)
           cd ..
       
       - name: pcre2
@@ -564,6 +569,7 @@ jobs:
             --with-stream_realip_module \
             --with-stream_ssl_module \
             --with-stream_ssl_preread_module \
+            --add-module=../zstd-nginx-module \
             --add-module=../ngx_brotli \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
