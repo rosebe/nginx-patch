@@ -61,11 +61,26 @@ jobs:
       #   go-version: ^1.20
       #   check-latest: true
   
-      - name: Set up GCC
-        uses: egor-tensin/setup-gcc@v2
-        with:
-         version: 16
-         platform: x64
+      #- name: Set up GCC
+      #  uses: egor-tensin/setup-gcc@v2
+      #  with:
+      #   version: 16
+      #   platform: x64
+      
+      - name: Install musl toolchain
+        run: |
+          sudo apt-get install -y musl musl-dev musl-tools linux-libc-dev
+          # 核心修复：将 Linux 内核头文件软链接到 musl 的搜索路径中，防止符号污染
+          sudo ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
+          sudo ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic
+          #sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
+          sudo ln -sf /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm
+            
+      - name: Verify installation
+        run: |
+           # 验证两个编译器是否正常工作
+           musl-gcc --version
+           #musl-g++ --version
       
       - name: openssl
         env: 
