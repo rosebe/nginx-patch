@@ -186,7 +186,7 @@ jobs:
                
           echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
                     
-          curl https://raw.githubusercontent.com/rosebe/nginx-quic/refs/heads/master/nginx_dynamic_tls_records.patch | patch --verbose -p 1
+          curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/master/nginx_dynamic_tls_records.patch | patch --verbose -p 1
           
           # 1. 彻底清理残留
           rm -rf objs/
@@ -290,9 +290,9 @@ jobs:
             G_HOST="https://github.com"
             G_REPO="/grpc/grpc-go.git"
             
-            #NGINX_BIN="/home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx"
+            #NGINX_BIN="/home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx"
             
-            NGINX_BIN="/home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx"
+            NGINX_BIN="/home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx"
             G_WORKSPACE="${{ github.workspace }}"
 
             # 2. [环境整备]
@@ -329,9 +329,9 @@ jobs:
            
 
             # 检测配置文件
-            sudo chmod +x /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx
-            #sudo /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx -V
-            #sudo /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx -t -c /tmp/pgo-run/pgo.conf
+            sudo chmod +x /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+            #sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -V
+            #sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -t -c /tmp/pgo-run/pgo.conf
             
             # ==========================================
             # 5. [插桩启动 - 强力覆盖全局指令以规避环境冲突崩溃]
@@ -510,7 +510,7 @@ jobs:
         run: |
           cd nginx
           #make clean
-          rm -rf /home/runner/work/nginx-quic/nginx-quic/nginx/objs
+          rm -rf /home/runner/work/nginx-patch/nginx-patch/nginx/objs
           
           ./auto/configure \
             --prefix=/etc/nginx \
@@ -589,9 +589,9 @@ jobs:
       - name: Strip and Package
         run: |
           # 1. 瘦身：去除调试符号，文件将从 19M 通常能缩减到 5-8M 左右
-          strip --strip-all /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx
+          strip --strip-all /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
           # 验证优化后的最终体积        
-          ls -lh /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx
+          ls -lh /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
                   
           # 归档上传
           # tar -czvf nginx-pgo-v4-static.tar.gz -C nginx/objs nginx
@@ -601,16 +601,16 @@ jobs:
           # 验证是否为静态链接
           # 验证生成的二进制文件是否为“纯静态”
           echo "==== 验证二进制文件状态 ===="
-          #chmod +x /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx
-          file /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx
-          ldd /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx || echo "Static binary confirmed"
+          #chmod +x /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          file /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          ldd /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx || echo "Static binary confirmed"
           echo "✅ nginx -V"
-          /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx -V | true
+          /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -V | true
             
       - uses: actions/upload-artifact@v7
         with:
-          name: nginx-quic.Openssl
-          path: /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx
+          name: nginx-patch.Openssl
+          path: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
       
         # Setting an environment variable
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions
@@ -619,9 +619,9 @@ jobs:
         id: step_one
         shell: bash
         run: |
-          echo "ASSET_NAME=nginx-quic-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-quic/nginx-quic/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} With-Compiler-gcc Support ngx_http_geoip2 zlib-ng PGO V4 test build on ${{ env.nginx_build_time }}" >> $GITHUB_ENV
-          echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-quic/nginx-quic/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
-          echo "RELEASE_NAME=nginx-quic v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-quic/nginx-quic/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          echo "ASSET_NAME=nginx-quic-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} With-Compiler-gcc Support ngx_http_geoip2 zlib-ng PGO V4 test build on ${{ env.nginx_build_time }}" >> $GITHUB_ENV
+          echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          echo "RELEASE_NAME=nginx-quic v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           
           echo "TAG_NAME: "
           echo "${{ env.TAG_NAME }}"
@@ -665,7 +665,7 @@ jobs:
           tag: ${{ env.TAG_NAME }}
           release_name: ${{ env.RELEASE_NAME }}
           asset_name: ${{ env.ASSET_NAME }}
-          file: /home/runner/work/nginx-quic/nginx-quic/nginx/objs/nginx
+          file: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
           body: |
             ### Nginx-Quic Build  
             ### Happy play !
@@ -675,6 +675,6 @@ jobs:
             - **Arch**: x86-64-v4 (AVX-512)
             - **Static**: All libraries linked statically.
             - **Modules**: Brotli, GeoIP2, OpenSSL/kTLS ,Zlib-ng.
-          overwrite: false
+          overwrite: true
           file_glob: false
       
