@@ -675,6 +675,6 @@ jobs:
             - **Arch**: x86-64-v4 (AVX-512)
             - **Static**: All libraries linked statically.
             - **Modules**: Brotli, GeoIP2, OpenSSL/kTLS ,Zlib-ng.
-          overwrite: true
+          overwrite: false
           file_glob: false
       
