@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: build nginx-quic with zlib-ng. zstd-nginx-module. ngx_http_geoip2_module. Compiler musl-gcc (test) 
+name: build nginx-quic with zlib-ng. zstd-nginx-module. ngx_http_geoip2_module. Compiler musl-gcc (test) 1
 
 # Controls when the action will run. 
 on:
