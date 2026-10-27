@@ -290,6 +290,29 @@ jobs:
                   
           #cd ..
       
+      - name: libmaxminddb [Static build with musl-gcc]
+        env:
+          CC: musl-gcc
+          CXX: musl-g++
+        run: |
+          git clone --recursive https://github.com/maxmind/libmaxminddb.git
+          cd libmaxminddb
+          # 生成配置脚本并以 musl-gcc 纯静态模式配置
+          ./bootstrap
+          ./configure CC=musl-gcc \
+                      --enable-static \
+                      --disable-shared \
+                      --host=x86_64-linux-musl \
+                      CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC"
+          # 编译出静态库文件 (libmaxminddb.a)
+          make -j"$(nproc)"
+          cd ..
+         
+      - name: Pull geoip2-nginx-module
+        run: |
+          git clone https://github.com/leev/ngx_http_geoip2_module.git
+          
+      
       - name: Build time
         run: |
           echo "nginx_build_time=$(date +%Y_%m_%d-%H:%M:%S)" >> $GITHUB_ENV
@@ -377,16 +400,17 @@ jobs:
             --with-stream_ssl_preread_module \
             --add-module=../zstd-nginx-module \
             --add-module=../ngx_brotli \
+            --add-module=../ngx_http_geoip2_module \
             --with-openssl=../openssl \
             --with-openssl-opt='no-shared no-comp enable-tls1_3' \
             --with-pcre=../pcre2 \
             --with-pcre-jit \
-            --with-http_geoip_module \
             --with-http_v3_module \
-            --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Add with-geoip: http_geoip_module. Compiler musl-gcc. arch ${{ env.OPTIMIZED_MARCH }}. And build on ${{ env.nginx_build_time }}" \
-            --with-cc-opt="-static -I../zlib-ng -I../zstd/lib -O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }}" \
-            --with-ld-opt="-static -L../zlib-ng -L../zstd/lib -lz -lzstd"
-           
+            --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Add with-geoip2: ngx_http_geoip2_module. Compiler musl-gcc. arch ${{ env.OPTIMIZED_MARCH }}. And build on ${{ env.nginx_build_time }}" \
+            --with-cc-opt="-static -I../zlib-ng -I../zstd/lib -I../libmaxminddb/include -O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }}" \
+            --with-ld-opt="-static -L../zlib-ng -L../zstd/lib -L../libmaxminddb/src/.libs -lz -lzstd -lmaxminddb"
+ 
+          
           #--with-zlib-opt='--static' \
           #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
 
