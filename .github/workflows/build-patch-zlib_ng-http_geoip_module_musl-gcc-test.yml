@@ -305,7 +305,7 @@ jobs:
           #git reset --hard a4100450c067009158299ad69adb7d6f5e775943
           echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
           
-                    
+          # 顺畅拉取并应用 Dynamic TLS Record 补丁          
           curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
           
           #cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
@@ -327,8 +327,14 @@ jobs:
           # 强制清理之前可能残留的缓存
           #make clean || true
           rm -rf objs/
-
           
+          # ================== 【核心修复注入点】 ==================
+          # 必须将我们刚才辛苦编译出的静态 zstd 路径作为环境变量强制喂给 zstd-nginx-module
+          # 否则该模块会因为找不到头文件或尝试寻找 glibc 的系统库而崩溃
+          export ZSTD_INC="$(pwd)/../zstd/lib"
+          export ZSTD_LIB="$(pwd)/../zstd/lib"
+          # ========================================================
+        
           ./auto/configure \
             --with-cc=musl-gcc \
             --prefix=/etc/nginx \
