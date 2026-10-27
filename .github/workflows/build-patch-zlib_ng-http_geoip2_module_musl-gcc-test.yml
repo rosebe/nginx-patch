@@ -422,6 +422,18 @@ jobs:
           echo ""
           tree -d
           
+      - name: Strip and Package
+        run: |
+          # 1. 瘦身：去除调试符号，文件将从 19M 通常能缩减到 5-8M 左右
+          strip --strip-all /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          # 验证优化后的最终体积        
+          ls -lh /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+                  
+          # 归档上传
+          # tar -czvf nginx-pgo-v4-static.tar.gz -C nginx/objs nginx
+
+      
+      
       - name: Verify
         run: |
           # 验证是否为静态链接
