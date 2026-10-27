@@ -276,8 +276,8 @@ jobs:
              HAVE_PTHREAD=0 \
              ZSTD_MULTITHREAD=0 \
              BUILD_SHARED=no \
-             CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC" \
-             lib-static zstd
+             CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC"
+             
           cd ..
      
       - name: zstd-nginx-module
