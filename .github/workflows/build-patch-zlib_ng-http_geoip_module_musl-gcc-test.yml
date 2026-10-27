@@ -254,7 +254,6 @@ jobs:
         run: |
           git clone https://github.com/tokers/zstd-nginx-module.git
           cd zstd-nginx-module
-          make clean
           make -j"$(nproc)" \
              CC=musl-gcc \
              CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }}"
