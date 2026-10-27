@@ -105,7 +105,7 @@ jobs:
           echo "OPTIMIZED_MARCH=$CURRENT_MARCH" >> "$GITHUB_ENV"
           echo "✅ CURRENT_MARCH: $CURRENT_MARCH"
           
-          COMPILER_OPTIMIZED="2"
+          COMPILER_OPTIMIZED="3 -flto=auto"
           echo "COMPILER_OPTIMIZED=$COMPILER_OPTIMIZED" >> "$GITHUB_ENV"
           echo "✅ COMPILER_OPTIMIZED: $COMPILER_OPTIMIZED"
           
