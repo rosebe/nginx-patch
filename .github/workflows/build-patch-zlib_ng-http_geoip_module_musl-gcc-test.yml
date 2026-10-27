@@ -273,7 +273,9 @@ jobs:
           make clean
           make -j"$(nproc)" \
              CC=musl-gcc \
-             CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }} -DZSTD_MULTITHREAD=0"
+             HAVE_PTHREAD=0 \
+             ZSTD_MULTITHREAD=0 \
+             CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }}"
           cd ..
      
       - name: zstd-nginx-module
