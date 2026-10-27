@@ -275,7 +275,8 @@ jobs:
              CC=musl-gcc \
              HAVE_PTHREAD=0 \
              ZSTD_MULTITHREAD=0 \
-             CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }}"
+             CFLAGS="-O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC" \
+             lib-static zstd
           cd ..
      
       - name: zstd-nginx-module
