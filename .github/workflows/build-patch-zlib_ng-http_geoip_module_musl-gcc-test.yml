@@ -378,9 +378,9 @@ jobs:
             --with-http_geoip_module \
             --with-http_v3_module \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. Add with-zlib: zlib-ng. Add with-geoip: http_geoip_module. Compiler musl-gcc. arch ${{ env.OPTIMIZED_MARCH }}. And build on ${{ env.nginx_build_time }}" \
-            --with-cc-opt="-static -O${{ env.COMPILER_OPTIMIZED }} -I../zlib-ng -I../zstd/lib -march=${{ env.OPTIMIZED_MARCH }}" \
-            --with-ld-opt="-static -L../zlib-ng ../zstd/lib/libzstd.a"
-
+            --with-cc-opt="-static -I../zlib-ng -I../zstd/lib -O${{ env.COMPILER_OPTIMIZED }} -march=${{ env.OPTIMIZED_MARCH }}" \
+            --with-ld-opt="-static -L../zlib-ng -L../zstd/lib -lz -lzstd"
+           
           #--with-zlib-opt='--static' \
           #--with-cc-opt='-static -static-libgcc -march=x86-64 -O2'
 
