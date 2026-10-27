@@ -104,7 +104,8 @@ jobs:
           echo "OPTIMIZED_MARCH=$CURRENT_MARCH" >> "$GITHUB_ENV"
           echo "✅ CURRENT_MARCH: $CURRENT_MARCH"
           
-          echo "COMPILER_OPTIMIZED=2" >> "$GITHUB_ENV"
+          COMPILER_OPTIMIZED="2"
+          echo "COMPILER_OPTIMIZED=$COMPILER_OPTIMIZED" >> "$GITHUB_ENV"
           echo "✅ COMPILER_OPTIMIZED: $COMPILER_OPTIMIZED"
           
           echo "===== Detected CPU flags ====="
