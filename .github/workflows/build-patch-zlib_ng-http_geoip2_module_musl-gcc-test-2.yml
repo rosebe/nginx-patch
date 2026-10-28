@@ -194,17 +194,17 @@ jobs:
           perl ./Configure linux-x86_64 \
                          no-shared \
                          no-tests \
-                         --prefix=$(pwd)/../installed \
-                         --openssldir=$(pwd)/../installed/ssl \
+                         --prefix=$(pwd)/installed \
+                         --openssldir=$(pwd)/installed/ssl \
                          CC=musl-gcc \
                          ${{ env.OPTIMIZED_FLAGS }} \
                          -march=${{ env.OPTIMIZED_MARCH }}
                     
-          # 3. 编译并提纯释放到 ../installed/ 目录下（跳过庞大文档生成）
+          # 3. 编译并提纯释放到 openssl/installed/ 目录下（跳过庞大文档生成）
           make -j"$(nproc)"
           make install_sw
-          cd ..                  # 退回到 openssl 源码根目录
-          cd ..                  # 【对齐关键点】：再退一层，回到 GitHub Workspace 根目录！
+        
+          cd ..                  # 【对齐关键点】：回到 GitHub Workspace 根目录！
           
           echo "当前路径" 
           pwd
