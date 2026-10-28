@@ -447,9 +447,11 @@ jobs:
           MMDB_INC="$GITHUB_WORKSPACE/libmaxminddb/installed/include"
           MMDB_LIB="$GITHUB_WORKSPACE/libmaxminddb/installed/lib"
           
+                    
+          # 核心对齐点：OpenSSL 在 Ubuntu/Debian 静态全编译时会输出到 lib64，我们同时引入 lib 和 lib64 防御
           OPENSSL_INC="$GITHUB_WORKSPACE/openssl/installed/include"
-          OPENSSL_LIB="$GITHUB_WORKSPACE/openssl/installed/lib"
-          
+          OPENSSL_LIB="-L$GITHUB_WORKSPACE/openssl/installed/lib -L$GITHUB_WORKSPACE/openssl/installed/lib64"
+
           PCRE2_INC="$GITHUB_WORKSPACE/pcre2/installed/include"
           PCRE2_LIB="$GITHUB_WORKSPACE/pcre2/installed/lib"
           
@@ -460,8 +462,9 @@ jobs:
           
           # 动态无缝剥离拼接出纯净单行参数，彻底解决 GCC 15 空格格式化报错
           CC_OPTIONS="-static -I${ZLIB_INC} -I${BROTLI_INC} -I${MMDB_INC} -I${OPENSSL_INC} -I${PCRE2_INC} -I${ZSTD_INC} -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
-          LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} -L${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
-
+          LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -lrt -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
+          
+          
           ./auto/configure \
             --with-cc=musl-gcc \
             --prefix=/etc/nginx \
