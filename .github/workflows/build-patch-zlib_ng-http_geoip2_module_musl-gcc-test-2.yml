@@ -432,8 +432,8 @@ jobs:
           # ================== 【核心修复注入点】 ==================
           # 必须将我们刚才辛苦编译出的静态 zstd 路径作为环境变量强制喂给 zstd-nginx-module
           # 否则该模块会因为找不到头文件或尝试寻找 glibc 的系统库而崩溃
-          export ZSTD_INC="$(pwd)/../zstd/installed/include"
-          export ZSTD_LIB="$(pwd)/../zstd/installed/lib"
+          #export ZSTD_INC="$GITHUB_WORKSPACE/zstd/installed/include"
+          #export ZSTD_LIB="$GITHUB_WORKSPACE/zstd/installed/lib"
           # ========================================================
         
           # ================== 【核心路径修复点】 ==================
@@ -508,7 +508,7 @@ jobs:
             --with-http_v3_module \
             --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. zlib: zlib-ng. geoip2: ngx_http_geoip2_module. Compiler: musl-gcc. arch: ${{ env.OPTIMIZED_MARCH }}. flags: ${{ env.OPTIMIZED_FLAGS }}. build on: ${{ env.nginx_build_time }}" \
             --with-cc-opt="${CC_OPTIONS}" \
-            --with-ld-opt="${LD_OPTIONS}"
+            --with-ld-opt="${LD_OPTIONS}" || (cat objs/autoconf.err && exit 1) # 核心：失败时立刻打印致命原因
             
                       
           #--with-zlib-opt='--static' \
