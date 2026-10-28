@@ -61,8 +61,8 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Runtime depend 
         run: |
-          sudo apt-get update
-          sudo apt-get upgrade 
+          #sudo apt-get update
+          #sudo apt-get upgrade 
           sudo apt-get install build-essential ca-certificates \
                                zlib1g-dev libssl-dev \
                                git cmake ninja-build gnupg2 lsb-release libunwind-dev \
@@ -299,11 +299,16 @@ jobs:
           # 1. -DZLIB_COMPAT=ON：使 API 兼容原生 zlib，输出 libz.a，供 Nginx 直接调用
           # 2. -DBUILD_SHARED_LIBS=OFF：关闭动态库，只编译静态库
           # 3. -DWITH_RUNTIME_CPU_DETECTION=OFF：既然已经选定了 march 架构，关闭运行时探测可以减少代码分支，提升执行能效
+          # 4. 传入 -DBUILD_TESTING=OFF 关闭测试，确保 100% 不会触发任何 C++ 编译链
+          # 5. 完美继承你环境中的全局优化参数
           cmake \
             -DCMAKE_C_COMPILER=musl-gcc \
+            -DCMAKE_CXX_COMPILER=g++ \
             -DCMAKE_BUILD_TYPE=Release \
             -DZLIB_COMPAT=ON \
             -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_TESTING=OFF \
+            -DWITH_GTEST=OFF \
             -DWITH_RUNTIME_CPU_DETECTION=OFF \
             -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }}" \
             -DCMAKE_INSTALL_PREFIX=../installed ..
