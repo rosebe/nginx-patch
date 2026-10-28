@@ -467,7 +467,6 @@ jobs:
           # 动态无缝剥离拼接出纯净单行参数，彻底解决 GCC 15 空格格式化报错
           CC_OPTIONS="-static -I${ZLIB_INC} -I${BROTLI_INC} -I${MMDB_INC} -I${OPENSSL_INC} -I${PCRE2_INC} -I${ZSTD_INC} -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
           LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} -L${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
-	   
           
           ./auto/configure \
             --with-cc=musl-gcc \
