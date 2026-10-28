@@ -301,13 +301,11 @@ jobs:
           # 3. -DWITH_RUNTIME_CPU_DETECTION=OFF：既然已经选定了 march 架构，关闭运行时探测可以减少代码分支，提升执行能效
           cmake \
             -DCMAKE_C_COMPILER=musl-gcc \
-            -DCMAKE_CXX_COMPILER=musl-g++ \
             -DCMAKE_BUILD_TYPE=Release \
             -DZLIB_COMPAT=ON \
             -DBUILD_SHARED_LIBS=OFF \
             -DWITH_RUNTIME_CPU_DETECTION=OFF \
             -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }}" \
-            -DCMAKE_CXX_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }}" \
             -DCMAKE_INSTALL_PREFIX=../installed ..
           
           # 编译所有组件并打包安装到 ../installed/ 目录下
