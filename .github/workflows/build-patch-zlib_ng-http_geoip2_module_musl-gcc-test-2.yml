@@ -167,6 +167,7 @@ jobs:
            #musl-g++ --version
       
       
+           
       - name: openssl-4.1 [Static build with musl-gcc]
         env: 
           CC: musl-gcc
@@ -199,13 +200,28 @@ jobs:
                          ${{ env.OPTIMIZED_FLAGS }} \
                          -march=${{ env.OPTIMIZED_MARCH }}
                     
-
-          # 3. 编译并提纯释放到 ../installed/ 目录下
+          # 3. 编译并提纯释放到 ../installed/ 目录下（跳过庞大文档生成）
           make -j"$(nproc)"
           make install_sw
-          cd ..
-
+          cd ..                  # 退回到 openssl 源码根目录
+          cd ..                  # 【对齐关键点】：再退一层，回到 GitHub Workspace 根目录！
           
+          echo "当前路径" 
+          pwd
+          
+          # 4. 【验证对齐】
+          # 自动探测 OpenSSL 生成的是 lib 还是 lib64 目录，确保 100% 打印成功
+          echo "=== 检查 openssl 静态提纯产物 ==="
+          if [ -d "openssl/installed/lib64" ]; then
+              ls -lh openssl/installed/lib64/libssl.a
+              ls -lh openssl/installed/lib64/libcrypto.a
+          else
+              ls -lh openssl/installed/lib/libssl.a
+              ls -lh openssl/installed/lib/libcrypto.a
+          fi
+          ls -lh openssl/installed/include/openssl/ssl.h
+
+      
       - name: brotli
         env:
           CC: musl-gcc
