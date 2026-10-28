@@ -318,11 +318,8 @@ jobs:
           cmake --install .
           
           cd ../..
-
+      
       - name: zstd [Static build & install with musl-gcc]
-        env:
-          CC: musl-gcc
-          CXX: musl-g++
         run: |
           # 1. 检出轻量化源码并清理旧缓存
           git clone --depth 1 https://github.com/facebook/zstd.git
@@ -331,7 +328,7 @@ jobs:
           
           # 2. 核心全并行物理熔炼：
           #    - 指定纯 C 环境参数，强行切断系统动态库依赖
-          #    - 将你的全局硬件架构和优化参数无缝注入 CFLAGS
+          #    - 完美继承你环境中的全局优化参数变量
           make -j"$(nproc)" \
              CC=musl-gcc \
              HAVE_PTHREAD=0 \
@@ -339,23 +336,20 @@ jobs:
              BUILD_SHARED=no \
              CFLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC"
              
-          # 3. 核心安装与提纯：
-          #    - 使用 PREFIX=$(pwd)/installed 指定纯净提取目录（zstd 官方 Makefile 默认使用 PREFIX）
-          #    - 执行 install-static 和 install-includes，只提取核心静态库与 .h 头文件，全自动跳过庞大的 CLI 命令行程序和说明文档
-          make install-static install-includes \
-             PREFIX=$(pwd)/installed
-             
-          cd ..
+          # 3. 【核心修复点】进入核心库子目录进行精准提纯安装：
+          #    - 顶级 Makefile 不支持静态安装目标，必须进入 lib/ 目录
+          #    - 显式传递 BUILD_SHARED=no，make 会智能跳过动态库，仅提纯提取静态组件
+          cd lib
+          make install \
+             PREFIX=$(pwd)/../installed \
+             BUILD_SHARED=no
+          cd ../..
           
-          # 4. 【对齐修复验证】
-          # 确保最终 Nginx 能够完美引用的标准路径对齐：
-          # 包含路径（-I）: $GITHUB_WORKSPACE/zstd/installed/include
-          # 库文件路径（-L）: $GITHUB_WORKSPACE/zstd/installed/lib
+          # 4. 【验证对齐】
           echo "=== 检查 zstd 静态提纯产物 ==="
           ls -lh zstd/installed/lib/libzstd.a
           ls -lh zstd/installed/include/zstd.h
 
-      
       - name: zstd-nginx-module
         env:
           CC: musl-gcc
@@ -467,7 +461,7 @@ jobs:
           # 动态无缝剥离拼接出纯净单行参数，彻底解决 GCC 15 空格格式化报错
           CC_OPTIONS="-static -I${ZLIB_INC} -I${BROTLI_INC} -I${MMDB_INC} -I${OPENSSL_INC} -I${PCRE2_INC} -I${ZSTD_INC} -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
           LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} -L${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
-          
+
           ./auto/configure \
             --with-cc=musl-gcc \
             --prefix=/etc/nginx \
