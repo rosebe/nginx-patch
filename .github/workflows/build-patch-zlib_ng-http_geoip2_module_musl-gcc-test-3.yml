@@ -280,7 +280,7 @@ jobs:
 
           echo "🚀 [提纯] 正在将 find 定位到的头文件复制到标准头文件子目录..."
           # 【核心修复】将头文件精准物理灌入 include/brotli/ 中，确保 #include <brotli/encode.h> 能够被 Nginx 识别
-          find ${{ github.workspace }}/ngx_brotli -name "*.h" | grep "/include/brotli/" | xargs -I {} cp -f {} "${BROTLI_INC}/brotli/" \;
+          find ${{ github.workspace }}/ngx_brotli -name "*.h" | grep "/include/brotli/" | xargs -I {} cp -f {} "${BROTLI_INC}/brotli/"
 
           # ================= 最终核对与环境变量导出 =================
           echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
