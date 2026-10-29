@@ -258,6 +258,7 @@ jobs:
           
           cd ../../../..
           
+          
           # 4. 【验证对齐】
           echo "=== 检查 brotli 静态提纯产物 ==="
           echo "🔍 [诊断] find 检索到的所有 静态库 (.a) 及其物理体积细节："
@@ -265,7 +266,29 @@ jobs:
 
           echo "🔍 [诊断] find 检索到的所有 符合格式的 头文件 (.h) 及其时间戳细节："
           find ${{ github.workspace }}/ngx_brotli -name "*.h" | grep "/include/brotli/" | xargs -r ls -lh
+                            
+          # ================= 完美归拢：直接将 find 产物灌入后续指定的绝对路径 =================
+          BROTLI_INC="${{ github.workspace }}/ngx_brotli/deps/brotli/installed/include"
+          BROTLI_LIB="${{ github.workspace }}/ngx_brotli/deps/brotli/installed/lib"
           
+          # 【核心修复】创建完全对齐的标准化目录树（头文件根目录下必须含有 brotli 文件夹）
+          mkdir -p "${BROTLI_LIB}"
+          mkdir -p "${BROTLI_INC}/brotli"
+
+          echo "🚀 [提纯] 正在将 find 定位到的静态库复制到标准库目录..."
+          find ${{ github.workspace }}/ngx_brotli -name "*.a" -exec cp -f {} "${BROTLI_LIB}/" \;
+
+          echo "🚀 [提纯] 正在将 find 定位到的头文件复制到标准头文件子目录..."
+          # 【核心修复】将头文件精准物理灌入 include/brotli/ 中，确保 #include <brotli/encode.h> 能够被 Nginx 识别
+          find ${{ github.workspace }}/ngx_brotli -name "*.h" | grep "/include/brotli/" | xargs -I {} cp -f {} "${BROTLI_INC}/brotli/"
+
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "${BROTLI_LIB}/"
+          echo "📂 头文件列表（必须在 brotli 子目录下）："
+          ls -lh "${BROTLI_INC}/brotli/"
+         
           
       #- name: zlib-cf
         #run: |
