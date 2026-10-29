@@ -184,7 +184,7 @@ jobs:
           
           git submodule update --init --recursive
           echo "Openssl_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "✅ Openssl_Commit_ID: $(git rev-parse) "
+          echo "✅ Openssl_Commit_ID: $(git rev-parse HEAD) "
                    
           # 2. 核心注入配置：
           #    - linux-x86_64: 指定目标平台
@@ -513,8 +513,7 @@ jobs:
           LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${LD_OPT_GC}"
          
           #--crossbuild=linux:x86_64 \
-          #--with-compat \
-          
+                    
           ./auto/configure \
             --with-cc=musl-gcc \
             --crossbuild=linux:x86_64 \
@@ -533,6 +532,7 @@ jobs:
             --http-scgi-temp-path=/var/cache/nginx/scgi_temp \
             --user=nginx \
             --group=nginx \
+            --with-compat \
             --with-threads \
             --with-http_addition_module \
             --with-http_auth_request_module \
