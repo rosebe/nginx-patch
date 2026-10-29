@@ -250,7 +250,11 @@ jobs:
           cmake --build . --config Release --target brotlienc brotlicommon brotlidec
           
           # 核心修复：执行安装，把所有生成的 .a 静态库和头文件统一释放到 deps/brotli/installed/ 目录
-          cmake --install .
+          #cmake --install .
+          
+          # 改为只安装库组件（lib）和开发头文件组件（development），完美绕过未编译的 brotli 命令行工具
+          cmake --install . --component lib
+          cmake --install . --component development
           
           cd ../../../..
           
