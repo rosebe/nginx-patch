@@ -259,10 +259,12 @@ jobs:
           cd ../../../..
           
           # 4. 【验证对齐】
-          
           echo "=== 检查 brotli 静态提纯产物 ==="
-          ls -lh ngx_brotli/deps/brotli/installed/include/brotli/
-          ls -lh ngx_brotli/deps/brotli/installed/lib/
+          echo "🔍 [诊断] find 检索到的所有 静态库 (.a) 及其物理体积细节："
+          find ${{ github.workspace }}/ngx_brotli -name "*.a" | xargs -r ls -lh
+
+          echo "🔍 [诊断] find 检索到的所有 符合格式的 头文件 (.h) 及其时间戳细节："
+          find ${{ github.workspace }}/ngx_brotli -name "*.h" | grep "/include/brotli/" | xargs -r ls -lh
           
           
       #- name: zlib-cf
