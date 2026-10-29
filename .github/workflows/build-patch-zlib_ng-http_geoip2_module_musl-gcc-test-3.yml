@@ -516,7 +516,6 @@ jobs:
                     
           ./auto/configure \
             --with-cc=musl-gcc \
-            --crossbuild=linux:x86_64 \
             --prefix=/etc/nginx \
             --sbin-path=/usr/sbin/nginx \
             --modules-path=/usr/lib64/nginx/modules \
