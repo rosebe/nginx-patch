@@ -558,7 +558,7 @@ jobs:
             --add-module=../ngx_brotli \
             --add-module=../ngx_http_geoip2_module \
             --with-http_v3_module \
-            --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add-patch Dynamic TLS Record support: Enable. Zlib: zlib-ng. GeoIP2: Enable. QUIC: Enable. Compiler: musl-gcc. arch: ${{ env.OPTIMIZED_MARCH }}. flags: ${{ env.OPTIMIZED_FLAGS }}. build on: ${{ env.nginx_build_time }}" \
+            --build="Commit_ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe_add_patch: Dynamic TLS Record support. Zlib: zlib-ng. GeoIP2: Enable. QUIC: Enable. Compiler: musl-gcc. arch: ${{ env.OPTIMIZED_MARCH }}. flags: ${{ env.OPTIMIZED_FLAGS }}. build on: ${{ env.nginx_build_time }}" \
             --with-cc-opt="${CC_OPTIONS}" \
             --with-ld-opt="${LD_OPTIONS}" || (cat objs/autoconf.err && exit 1) # 核心：失败时立刻打印致命原因
             
