@@ -544,8 +544,9 @@ jobs:
           # Zstd 路径环境注入，供第三方扩展模块在后台读取
           # 必须将我们刚才辛苦编译出的静态 zstd 路径作为环境变量强制喂给 zstd-nginx-module
           # 否则该模块会因为找不到头文件或尝试寻找 glibc 的系统库而崩溃
-          export ZSTD_INC="../zstd/installed/include"
-          export ZSTD_LIB="../zstd/installed/lib"
+          # 使用绝对路径
+          export ZSTD_INC="$GITHUB_WORKSPACE/zstd/installed/include"
+          export ZSTD_LIB="$GITHUB_WORKSPACE/zstd/installed/lib"
           # ========================================================
           
           # 高级分块与循环展开优化
