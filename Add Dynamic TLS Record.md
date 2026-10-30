@@ -15,7 +15,7 @@
 > ⚠️ **核心注意：** `ssl_dyn_rec_*` 这一系列指令**非 Nginx 官方标准内置参数**。
 
 要想让这些指令生效，你必须通过以下途径之一：
-1. **源码自行编译**：下载官方 Nginx 源码，并手动打上 [Cloudflare 官方开源的 TLS 补丁](https://github.com/cloudflare/sslconfig/tree/master/patches)。
+1. **源码自行编译**：下载官方 Nginx 源码，并手动打上 [Cloudflare 官方开源的 TLS 补丁](https://github.com)。
 2. **使用第三方发行版**：使用集成了该补丁的著名发行版（如阿里 **Tengine**、或社区知名的 **kn007 增强版补丁**）。
 
 ---
