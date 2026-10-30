@@ -221,8 +221,14 @@ jobs:
               ls -lh openssl/installed/lib/libcrypto.a
           fi
           ls -lh openssl/installed/include/openssl/ssl.h
-
-      
+          
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/openssl/installed/lib64"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/openssl/installed/include"
+   
       - name: brotli [Static build with musl-gcc]
         env:
           CC: musl-gcc
@@ -327,7 +333,13 @@ jobs:
           cmake --build . --config Release -j$(nproc)
           cmake --install .
           cd ../..
-
+          
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/include"
       
       - name: zlib-ng [Pre-configure zlib-ng for Musl]
         env:
@@ -361,6 +373,13 @@ jobs:
           cmake --install .
           
           cd ../..
+          
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/zlib-ng/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/zlib-ng/installed/include"
       
       - name: zstd [Static build & install with musl-gcc]
         run: |
@@ -388,11 +407,13 @@ jobs:
              BUILD_SHARED=no
           cd ../..
           
-          # 4. 【验证对齐】
-          echo "=== 检查 zstd 静态提纯产物 ==="
-          ls -lh zstd/installed/lib/libzstd.a
-          ls -lh zstd/installed/include/zstd.h
-
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/zstd/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/zstd/installed/include"
+       
       - name: zstd-nginx-module
         env:
           CC: musl-gcc
@@ -428,7 +449,14 @@ jobs:
           cmake --build . --config Release -j$(nproc)
           cmake --install .
           cd ../..
-      
+
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/libmaxminddb/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/libmaxminddb/installed/include"
+       
       - name: geoip2-nginx-module
         run: |
           git clone https://github.com/leev/ngx_http_geoip2_module.git
