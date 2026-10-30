@@ -1,8 +1,6 @@
 # ⚡ Nginx 高级网络性能优化：动态 TLS 记录 + HTTP/2/3 完美配置指南
 
-[![Nginx Version](https://shields.io)](https://nginx.org)
-[![Protocol Support](https://shields.io)](https://nginx.org)
-[![Network Performance](https://shields.io)](https://nginx.org)
+## 🖥️ Nginx - Server [[Nginx Version]](https://nginx.org)
 
 在传统的 TLS 传输中，Nginx 默认会使用 16KB 的固定 Record 大小。这在传输大文件时吞吐量很高，但会导致**首字节时间 (TTFB) 变长**，因为客户端必须接收完整个 16KB 的网络包才能开始解密渲染。
 
