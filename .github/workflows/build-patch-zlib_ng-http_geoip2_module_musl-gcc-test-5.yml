@@ -599,8 +599,8 @@ jobs:
           # Nginx 默认的 ngx_feature_run=no 应该只做链接测试
           # 原理解析： Nginx 的 auto/feature 脚本在运行前会检查对应的 ngx_res_xxxx 变量。
           # 如果提前注入为 yes，它会直接跳过运行测试程序的步骤，认为该特征完全可用，从而完美闭环。
-          export ngx_res_ZStandard_static_library=yes
-          export ngx_res_ZStandard_dynamic_library=yes
+          #export ngx_res_ZStandard_static_library=yes
+          #export ngx_res_ZStandard_dynamic_library=yes
           
           ./auto/configure \
             --with-cc=musl-gcc \
