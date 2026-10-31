@@ -45,6 +45,12 @@ on:
         required: false
         type: boolean
         default: false
+      
+      Upload_Binaries_To_Release:
+        description: 'Click here to upload binaries to release'
+        required: false
+        type: boolean
+        default: false
   
   release:
     types: [published]
@@ -1044,6 +1050,7 @@ jobs:
         #uses: svenstaro/upload-release-action@e2a63377780a8bacc68dcac9b0979ee20ad5a791
         uses: svenstaro/upload-release-action@2.11.5
         #if: github.event_name == 'release'
+        if: ${{ github.event.inputs.Upload_Binaries_To_Release == 'true' }}
         with:
           repo_token: ${{ github.token }}          
           tag: ${{ env.TAG_NAME }}
