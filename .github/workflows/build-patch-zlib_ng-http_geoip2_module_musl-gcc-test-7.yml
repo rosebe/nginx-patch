@@ -40,6 +40,12 @@ on:
           - '-O2'
         default: '-O3 -flto=auto'
         
+      Runtime_Depend_Update:
+        description: 'Click here to Runtime Depend Update'
+        required: false
+        type: boolean
+        default: false
+        
       Binaries_Stress_Testing:
         description: 'Click here to Binaries_Stress_Testing.'
         required: false
@@ -51,13 +57,7 @@ on:
         required: false
         type: boolean
         default: false
-      
-      Runtime_Depend_Update:
-        description: 'Click here to Runtime Depend Update'
-        required: false
-        type: boolean
-        default: false
-        
+ 
   release:
     types: [published]
 
