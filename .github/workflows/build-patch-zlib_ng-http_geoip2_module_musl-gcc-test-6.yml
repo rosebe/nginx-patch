@@ -139,7 +139,7 @@ jobs:
           fi
 
           
-          echo "✅ VPS_CURRENT_MARCH: $CURRENT_MARCH"
+          echo "✅ Runner_CURRENT_MARCH: $CURRENT_MARCH"
           
           echo "===== Detected CPU flags ====="
           printf '%s\n' "$CPU_FLAGS"
