@@ -800,7 +800,7 @@ jobs:
           else
               echo "✅ 未发现 DT_NEEDED 动态库依赖"
           fi
-          
+              
           echo "==== 验证运行 ===="
           "$NGINX_TEST" -V
 
@@ -1032,7 +1032,7 @@ jobs:
             if [ -n "$NGINX_PID" ] && kill -0 "$NGINX_PID" 2>/dev/null; then
                 # 💡 技巧：如果你的 Profile 插件依附于 Worker，可以直接向所有 worker 发送信号
                 # 如果插件本身支持通过 Master 统一收集，则保留对 Master 发送
-                echo ">> ⏳ 正在通知 Nginx 发送优雅退出信号..."
+                echo ">> ⏳ 正在通知 Nginx (PID: $NGINX_PID) 发送优雅退出信号..."
                 sudo kill -QUIT "$NGINX_PID" || true
             fi
 
