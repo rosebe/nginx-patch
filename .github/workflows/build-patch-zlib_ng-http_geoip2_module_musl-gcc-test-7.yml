@@ -81,7 +81,7 @@ jobs:
         uses: nick-fields/retry@v4
         with:
           timeout_minutes: 2
-          max_attempts: 3 # 最多重试 10 次去刷机器
+          max_attempts: 5 # 最多重试 X 次去刷机器
           retry_on: error
           command: |
             # 根据当前 runner 实际暴露的 CPU 指令集选择目标架构
