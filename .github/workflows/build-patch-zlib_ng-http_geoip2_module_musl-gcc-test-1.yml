@@ -408,13 +408,22 @@ jobs:
           # 2. 核心全并行物理熔炼：
           #    - 指定纯 C 环境参数，强行切断系统动态库依赖
           #    - 完美继承你环境中的全局优化参数变量
+          
+          #make -j"$(nproc)" \
+          #   CC=musl-gcc \
+          #   HAVE_PTHREAD=0 \
+          #   ZSTD_MULTITHREAD=0 \
+          #   BUILD_SHARED=no \
+          #   CFLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC"
+             
+          
+          # 修改后的 实现多线程
           make -j"$(nproc)" \
              CC=musl-gcc \
-             HAVE_PTHREAD=0 \
-             ZSTD_MULTITHREAD=0 \
              BUILD_SHARED=no \
              CFLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC"
-             
+
+          
           # 3. 【核心修复点】进入核心库子目录进行精准提纯安装：
           #    - 顶级 Makefile 不支持静态安装目标，必须进入 lib/ 目录
           #    - 显式传递 BUILD_SHARED=no，make 会智能跳过动态库，仅提纯提取静态组件
@@ -438,7 +447,7 @@ jobs:
         run: |
           git clone https://github.com/tokers/zstd-nginx-module.git
           #cd zstd-nginx-module
-                  
+          
           #cd ..
  
       - name: libmaxminddb [Static build with CMake]
@@ -559,11 +568,17 @@ jobs:
                     
           # 动态无缝剥离拼接出纯净单行参数，彻底解决 GCC 15 空格格式化报错
           CC_OPTIONS="-static -I${ZLIB_INC} -I${BROTLI_INC} -I${MMDB_INC} -I${OPENSSL_INC} -I${PCRE2_INC} -I${ZSTD_INC} -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${CC_OPT_SECTIONS}"
-          #LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -lrt -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${LD_OPT_GC}"
-          LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${LD_OPT_GC}"
+          LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -lrt -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${LD_OPT_GC}"
+          #LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${LD_OPT_GC}"
          
           #--crossbuild=linux:x86_64 \
                     
+          # Nginx 默认的 ngx_feature_run=no 应该只做链接测试
+          # 原理解析： Nginx 的 auto/feature 脚本在运行前会检查对应的 ngx_res_xxxx 变量。
+          # 如果提前注入为 yes，它会直接跳过运行测试程序的步骤，认为该特征完全可用，从而完美闭环。
+          export ngx_res_ZStandard_static_library=yes
+          export ngx_res_ZStandard_dynamic_library=yes
+          
           ./auto/configure \
             --with-cc=musl-gcc \
             --prefix=/etc/nginx \
