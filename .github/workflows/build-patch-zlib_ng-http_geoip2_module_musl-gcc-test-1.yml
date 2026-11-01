@@ -25,6 +25,7 @@ on:
           - 'x86-64-v4'
           - 'x86-64-v3'
           - 'x86-64-v2'
+          - 'x86-64'
           - 'native'
         default: 'x86-64-v3'
       
@@ -157,7 +158,7 @@ jobs:
           # 核心修复：将 Linux 内核头文件软链接到 musl 的搜索路径中，防止符号污染
           sudo ln -s /usr/include/linux /usr/include/x86_64-linux-musl/linux
           sudo ln -s /usr/include/asm-generic /usr/include/x86_64-linux-musl/asm-generic
-          #sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
+          ##sudo ln -s /usr/include/asm /usr/include/x86_64-linux-musl/asm
           sudo ln -sf /usr/include/x86_64-linux-gnu/asm /usr/include/x86_64-linux-musl/asm
             
       - name: Verify installation
@@ -175,7 +176,7 @@ jobs:
           OPENSSL_COMMIT_ID_LOCAL: f89540d7ccf89d91d4bc3c6fafd0c0a3585a4457
         run: |
           # 1. 深度拉取指定分支并精准同步子模块
-          git clone --recurse-submodules -b openssl-4.1 --depth 1 https://github.com/openssl/openssl.git
+          git clone --recurse-submodules -b openssl-4.1 --depth 1 -j8 https://github.com/openssl/openssl.git
           cd openssl
           
           # 如果需要精准锁定特定的 Commit ID，可以取消下面两行的注释：
@@ -184,7 +185,8 @@ jobs:
           
           git submodule update --init --recursive
           echo "Openssl_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          
+          echo "✅ Openssl_Commit_ID: $(git rev-parse HEAD) "
+                   
           # 2. 核心注入配置：
           #    - linux-x86_64: 指定目标平台
           #    - no-shared: 强行关闭动态库，只生成静态库 (libcrypto.a, libssl.a)
@@ -220,35 +222,35 @@ jobs:
               ls -lh openssl/installed/lib/libcrypto.a
           fi
           ls -lh openssl/installed/include/openssl/ssl.h
-
-      
-      - name: brotli
+          
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/openssl/installed/lib64"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/openssl/installed/include/openssl"
+   
+      - name: brotli [Static build with musl-gcc]
         env:
           CC: musl-gcc
           CXX: musl-g++
         run: |
-          git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli
+          git clone --recurse-submodules -j8 https://github.com/google/ngx_brotli.git
           cd ngx_brotli/deps/brotli
+          
+          echo "Brotli_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "✅ Brotli_Commit_ID: $(git rev-parse HEAD) "
+          
           mkdir out && cd out
           
-          # 核心修复：强制注入并卡死 musl-gcc 编译器，并生成纯静态库
-          #cmake \
-          #  -DCMAKE_C_COMPILER=musl-gcc \
-          #  -DCMAKE_CXX_COMPILER=musl-g++ \
-          #  -DCMAKE_BUILD_TYPE=Release \
-          #  -DBUILD_SHARED_LIBS=OFF \
-          #  -DCMAKE_C_FLAGS="-static ${{ env.OPTIMIZED_FLAGS }}" \
-          #  -DCMAKE_CXX_FLAGS="-static ${{ env.OPTIMIZED_FLAGS }}" \
-          #  -DCMAKE_INSTALL_PREFIX=./installed ..
-            
-          # 优化：去掉 CFLAGS 里的 -static，改用架构优化指令对齐（如 -march）
+          # 核心修复：强制注入并卡死 musl-gcc 编译器，并生成纯静态库，改用架构优化指令对齐（如 -march）
           cmake \
             -DCMAKE_C_COMPILER=musl-gcc \
             -DCMAKE_CXX_COMPILER=musl-g++ \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }}" \
-            -DCMAKE_CXX_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }}" \
+            -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -m64 -funroll-loops -ffunction-sections -fdata-sections -Wl,--gc-sections" \
+            -DCMAKE_CXX_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -m64 -funroll-loops -ffunction-sections -fdata-sections -Wl,--gc-sections" \
             -DCMAKE_INSTALL_PREFIX=../installed ..
                   
           #-DCMAKE_C_FLAGS="-static -O2 -ffunction-sections -fdata-sections" \  
@@ -257,11 +259,47 @@ jobs:
           # 注意：编译所有需要的静态组件（brotlienc、brotlicommon、brotlidec）
           #cmake --build . --config Release --target brotlienc brotlicommon
           cmake --build . --config Release --target brotlienc brotlicommon brotlidec
-         
+          
           # 核心修复：执行安装，把所有生成的 .a 静态库和头文件统一释放到 deps/brotli/installed/ 目录
-          #cmake --install .  
+          #cmake --install .
+          
+          # 改为只安装库组件（lib）和开发头文件组件（development），完美绕过未编译的 brotli 命令行工具
+          cmake --install . --component lib
+          cmake --install . --component development
           
           cd ../../../..
+          
+          
+          # 4. 【验证对齐】
+          echo "=== 检查 brotli 静态提纯产物 ==="
+          echo "🔍 [诊断] find 检索到的所有 静态库 (.a) 及其物理体积细节："
+          find ${{ github.workspace }}/ngx_brotli -name "*.a" | xargs -r ls -lh
+
+          echo "🔍 [诊断] find 检索到的所有 符合格式的 头文件 (.h) 及其时间戳细节："
+          find ${{ github.workspace }}/ngx_brotli -name "*.h" | grep "/include/brotli/" | xargs -r ls -lh
+                            
+          # ================= 完美归拢：直接将 find 产物灌入后续指定的绝对路径 =================
+          BROTLI_INC="${{ github.workspace }}/ngx_brotli/deps/brotli/installed/include"
+          BROTLI_LIB="${{ github.workspace }}/ngx_brotli/deps/brotli/installed/lib"
+          
+          # 【核心修复】创建完全对齐的标准化目录树（头文件根目录下必须含有 brotli 文件夹）
+          mkdir -p "${BROTLI_LIB}"
+          mkdir -p "${BROTLI_INC}/brotli"
+
+          echo "🚀 [提纯] 正在将 find 定位到的静态库复制到标准库目录..."
+          find ${{ github.workspace }}/ngx_brotli -name "*.a" -exec cp -f {} "${BROTLI_LIB}/" \;
+
+          echo "🚀 [提纯] 正在将 find 定位到的头文件复制到标准头文件子目录..."
+          # 【核心修复】将头文件精准物理灌入 include/brotli/ 中，确保 #include <brotli/encode.h> 能够被 Nginx 识别
+          find ${{ github.workspace }}/ngx_brotli -name "*.h" | grep "/include/brotli/" | xargs -I {} cp -f {} "${BROTLI_INC}/brotli/"
+
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "${BROTLI_LIB}/"
+          echo "📂 头文件列表（必须在 brotli 子目录下）："
+          ls -lh "${BROTLI_INC}/brotli/"
+         
           
       #- name: zlib-cf
         #run: |
@@ -281,6 +319,10 @@ jobs:
           # 1. 克隆源码并同步子模块（JIT 引擎依赖 SLJIT 子模块，必须加 --recurse-submodules）
           git clone --recurse-submodules https://github.com/PCRE2Project/pcre2.git
           cd pcre2
+          
+          echo "Pcre2_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "✅ Pcre2_Commit_ID: $(git rev-parse HEAD) "
+          
           mkdir out && cd out
           
           # 2. 核心优化配置：
@@ -300,7 +342,13 @@ jobs:
           cmake --build . --config Release -j$(nproc)
           cmake --install .
           cd ../..
-
+          
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/include"
       
       - name: zlib-ng [Pre-configure zlib-ng for Musl]
         env:
@@ -309,6 +357,10 @@ jobs:
         run: |
           git clone https://github.com/zlib-ng/zlib-ng.git
           cd zlib-ng
+
+          echo "zlib-ng_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "✅ zlib-ng_Commit_ID: $(git rev-parse HEAD) "
+          
           mkdir out && cd out
           
           # 核心优化说明：
@@ -334,12 +386,23 @@ jobs:
           cmake --install .
           
           cd ../..
+          
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/zlib-ng/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/zlib-ng/installed/include"
       
       - name: zstd [Static build & install with musl-gcc]
         run: |
           # 1. 检出轻量化源码并清理旧缓存
           git clone --depth 1 https://github.com/facebook/zstd.git
           cd zstd
+
+          echo "zstd_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "✅ zstd_Commit_ID: $(git rev-parse HEAD) "
+          
           make clean
           
           # 2. 核心全并行物理熔炼：
@@ -361,11 +424,13 @@ jobs:
              BUILD_SHARED=no
           cd ../..
           
-          # 4. 【验证对齐】
-          echo "=== 检查 zstd 静态提纯产物 ==="
-          ls -lh zstd/installed/lib/libzstd.a
-          ls -lh zstd/installed/include/zstd.h
-
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/zstd/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/zstd/installed/include"
+       
       - name: zstd-nginx-module
         env:
           CC: musl-gcc
@@ -381,8 +446,12 @@ jobs:
           CC: musl-gcc
           CXX: musl-g++
         run: |
-          git clone --recursive https://github.com/maxmind/libmaxminddb.git
+          git clone --recursive -j8 https://github.com/maxmind/libmaxminddb.git
           cd libmaxminddb
+
+          echo "libmaxminddb_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "✅ libmaxminddb_Commit_ID: $(git rev-parse HEAD) "
+          
           mkdir out && cd out
           
           # 核心优化说明：
@@ -401,7 +470,14 @@ jobs:
           cmake --build . --config Release -j$(nproc)
           cmake --install .
           cd ../..
-      
+
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/libmaxminddb/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/libmaxminddb/installed/include"
+       
       - name: geoip2-nginx-module
         run: |
           git clone https://github.com/leev/ngx_http_geoip2_module.git
@@ -424,7 +500,7 @@ jobs:
           
           # 顺畅拉取并应用 Dynamic TLS Record 补丁          
           curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
-          
+                    
           #cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
           #patch --verbose -p1 < nginx_dynamic_tls_records.patch
           
@@ -468,15 +544,26 @@ jobs:
           # Zstd 路径环境注入，供第三方扩展模块在后台读取
           # 必须将我们刚才辛苦编译出的静态 zstd 路径作为环境变量强制喂给 zstd-nginx-module
           # 否则该模块会因为找不到头文件或尝试寻找 glibc 的系统库而崩溃
-          export ZSTD_INC="../zstd/installed/include"
-          export ZSTD_LIB="../zstd/installed/lib"
+          # 使用绝对路径
+          export ZSTD_INC="$GITHUB_WORKSPACE/zstd/installed/include"
+          export ZSTD_LIB="$GITHUB_WORKSPACE/zstd/installed/lib"
           # ========================================================
           
+          # 高级分块与循环展开优化
+          #CC_OPT_SECTIONS="-funroll-loops -ffunction-sections -fdata-sections"
+          
+          # 编译器参数：开启分块，为链接器垃圾回收做准备
+          CC_OPT_SECTIONS="-ffunction-sections -fdata-sections"
+          # 链接器参数：开启无用 section 垃圾回收
+          LD_OPT_GC="-Wl,--gc-sections"
+                    
           # 动态无缝剥离拼接出纯净单行参数，彻底解决 GCC 15 空格格式化报错
-          CC_OPTIONS="-static -I${ZLIB_INC} -I${BROTLI_INC} -I${MMDB_INC} -I${OPENSSL_INC} -I${PCRE2_INC} -I${ZSTD_INC} -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
-          LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -lrt -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }}"
-          
-          
+          CC_OPTIONS="-static -I${ZLIB_INC} -I${BROTLI_INC} -I${MMDB_INC} -I${OPENSSL_INC} -I${PCRE2_INC} -I${ZSTD_INC} -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${CC_OPT_SECTIONS}"
+          #LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -lpthread -ldl -lrt -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${LD_OPT_GC}"
+          LD_OPTIONS="-static -L${ZLIB_LIB} -L${BROTLI_LIB} -L${MMDB_LIB} ${OPENSSL_LIB} -L${PCRE2_LIB} -L${ZSTD_LIB} -lssl -lcrypto -lz -lpcre2-8 -lmaxminddb -lzstd -march=${{ env.OPTIMIZED_MARCH }} ${{ env.OPTIMIZED_FLAGS }} ${LD_OPT_GC}"
+         
+          #--crossbuild=linux:x86_64 \
+                    
           ./auto/configure \
             --with-cc=musl-gcc \
             --prefix=/etc/nginx \
@@ -521,7 +608,7 @@ jobs:
             --add-module=../ngx_brotli \
             --add-module=../ngx_http_geoip2_module \
             --with-http_v3_module \
-            --build="Commit ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe Add patch: Dynamic TLS Record support. zlib: zlib-ng. geoip2: ngx_http_geoip2_module. Compiler: musl-gcc. arch: ${{ env.OPTIMIZED_MARCH }}. flags: ${{ env.OPTIMIZED_FLAGS }}. build on: ${{ env.nginx_build_time }}" \
+            --build="Commit_ID: $(git rev-parse --short HEAD). Openssl_Commit_ID: ${{ env.Openssl_Commit_ID }}. Rosebe_add_patch: Dynamic TLS Record support. Zlib: zlib-ng. GeoIP2: Enable. QUIC: Enable. Compiler: musl-gcc. arch: ${{ env.OPTIMIZED_MARCH }}. flags: ${{ env.OPTIMIZED_FLAGS }}. build on: ${{ env.nginx_build_time }}" \
             --with-cc-opt="${CC_OPTIONS}" \
             --with-ld-opt="${LD_OPTIONS}" || (cat objs/autoconf.err && exit 1) # 核心：失败时立刻打印致命原因
             
@@ -573,7 +660,7 @@ jobs:
         id: step_one
         shell: bash
         run: |
-          echo "ASSET_NAME=nginx-quic-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} with-zlib-ng and ngx_http_geoip2_module Compiler-musl-gcc arch-${{ env.OPTIMIZED_MARCH }} flags-${{ env.OPTIMIZED_FLAGS }} test build on ${{ env.nginx_build_time }}" >> $GITHUB_ENV
+          echo "ASSET_NAME=nginx-quic-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} with-zlib-ng and ngx_http_geoip2_module Compiler-musl-gcc arch-${{ env.OPTIMIZED_MARCH }} flags${{ env.OPTIMIZED_FLAGS }} test build on ${{ env.nginx_build_time }}" >> $GITHUB_ENV
           echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           echo "RELEASE_NAME=nginx-patch v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           
