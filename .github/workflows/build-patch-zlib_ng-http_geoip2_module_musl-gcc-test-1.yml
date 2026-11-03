@@ -293,9 +293,151 @@ jobs:
            # 验证两个编译器是否正常工作
            musl-gcc --version
            #musl-g++ --version
-      
-      
+           echo ">> 检查 musl 的头文件搜索路径"
+           musl-gcc -v -E -x c /dev/null
+           echo ">> 检查安装的头文件"
+           echo ">> musl-dev 安装的头文件"
+           dpkg -L musl-dev | grep '/include/'
+           echo ">> linux-libc-dev 安装的头文件"
+           dpkg -L linux-libc-dev | grep '/include/'
+           echo ">> 确认架构"
+           echo ">> musl-gcc 架构"
+           musl-gcc -dumpmachine
+           echo ">> gcc 架构"
+           gcc -dumpmachine
+           echo ">> 检查软链接是否正确"
+           for d in linux asm asm-generic; do
+                p="/usr/include/x86_64-linux-musl/$d"       
+                if [ -e "$p" ]; then
+                    echo "[OK] $p -> $(readlink -f "$p")"
+                else
+                    echo "[MISSING] $p"
+                fi
+           done
            
+           echo ">> 检查 musl-gcc 链接配置"
+           musl-gcc -print-file-name=libc.so
+           musl-gcc -print-file-name=libc.a
+           
+           echo ">> 检查 musl specs"
+           musl-gcc -dumpspecs | grep -E 'dynamic-linker|musl|ld-musl'
+
+      - name: musl_test  [ musl_test.c build with musl-gcc]
+        env: 
+          CC: musl-gcc
+          CXX: musl-g++
+        run: |     
+          cat > /tmp/musl_test.c <<'EOF'
+          #include <stdio.h>
+          #include <stdlib.h>
+          #include <string.h>
+          #include <pthread.h>
+          #include <sys/epoll.h>
+          #include <linux/version.h>
+          
+          int main(void)
+          {
+              printf("Hello from musl!\n");
+              printf("Kernel headers: %d\n", LINUX_VERSION_CODE);
+              printf("Pointer size: %zu\n", sizeof(void *));
+              return 0;
+          }
+          EOF
+          
+          musl-gcc -O2 -Wall -Wextra \
+              /tmp/musl_test.c \
+              -o /tmp/musl_test
+          
+          file /tmp/musl_test || true
+          
+          readelf -l /tmp/musl_test | grep interpreter || true
+          
+          ldd /tmp/musl_test || true
+          
+          /tmp/musl_test || true
+
+         
+          
+          #预期动态解释器类似：
+          #/lib/ld-musl-x86_64.so.1
+          #如果显示：
+          #/lib64/ld-linux-x86-64.so.2
+          #说明最终程序使用的是 glibc 动态加载器，而不是预期的 musl 加载器
+
+           musl-gcc -static \
+          -O3 \
+          -march=x86-64-v3 \
+          -Wall -Wextra \
+          /tmp/musl_test.c \
+          -o /tmp/musl_test_static
+
+          file /tmp/musl_test_static || true
+
+          readelf -l /tmp/musl_test_static | grep interpreter || true
+          
+          readelf -d /tmp/musl_test_static | grep NEEDED || true
+          
+          ldd /tmp/musl_test_static || true
+          
+          /tmp/musl_test_static || true
+
+          echo "===== 检查 ELF 动态依赖 ====="
+          readelf -d /tmp/musl_test_static
+          
+          echo "===== 检查符号 ====="
+          nm /tmp/musl_test_static | grep -E \
+          '__libc_start_main|__init_libc|__libc_start_init|__stdio_init' \
+          || true
+          
+          echo "===== 检查 musl 静态库 ====="
+          find /usr/lib /lib \
+              -path '*musl*' \
+              -name 'libc.a' \
+              -print 2>/dev/null
+          
+          echo "===== ELF 类型 ====="
+          readelf -h /tmp/musl_test_static
+          
+          echo "===== 程序解释器 ====="
+          readelf -l /tmp/musl_test_static | grep INTERP \
+              || echo "No dynamic interpreter"
+          
+          echo "===== 动态依赖 ====="
+          readelf -d /tmp/musl_test_static \
+              || echo "No dynamic section"
+          
+          echo "===== libc 来源 ====="
+          musl-gcc -print-file-name=libc.a
+          
+          echo "===== 编译器配置 ====="
+          musl-gcc -v      
+
+      - name: musl_kernel_test  [ musl_kernel_test.c build with musl-gcc]
+        env: 
+          CC: musl-gcc
+          CXX: musl-g++
+        run: |
+          cat > /tmp/musl_kernel_test.c <<'EOF'
+          #include <linux/types.h>
+          #include <linux/if.h>
+          #include <linux/if_tun.h>
+          #include <linux/netlink.h>
+          #include <linux/rtnetlink.h>
+          #include <linux/bpf.h>
+          #include <linux/futex.h>
+          #include <asm/unistd.h>
+          #include <asm-generic/errno.h>
+          
+          int main(void)
+          {
+              return 0;
+          }
+          EOF
+          
+          musl-gcc -c /tmp/musl_kernel_test.c \
+              -o /tmp/musl_kernel_test.o
+                    
+      
       - name: openssl-4.1 [Static build with musl-gcc]
         env: 
           CC: musl-gcc
@@ -468,7 +610,7 @@ jobs:
             -DWITH_GTEST=OFF \
             -DWITH_RUNTIME_CPU_DETECTION=OFF \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-            -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }}" \
+            -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC" \
             -DCMAKE_INSTALL_PREFIX=../installed ..
           
           # 编译所有组件并打包安装到 ../installed/ 目录下
@@ -484,47 +626,6 @@ jobs:
           echo "📂 头文件列表："
           ls -lh "$GITHUB_WORKSPACE/zlib-ng/installed/include"
       
-      - name: pcre2 [Static build with CMake]
-        env:
-          CC: musl-gcc
-          CXX: musl-g++
-        run: |
-          # 1. 克隆源码并同步子模块（JIT 引擎依赖 SLJIT 子模块，必须加 --recurse-submodules）
-          git clone --recurse-submodules https://github.com/PCRE2Project/pcre2.git
-          cd pcre2
-          
-          echo "Pcre2_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "✅ Pcre2_Commit_ID: $(git rev-parse HEAD) "
-          
-          mkdir out && cd out
-          
-          # 2. 核心优化配置：
-          #    - -DPCRE2_SUPPORT_JIT=ON: 开启硬核 JIT 即时编译支持，大幅压榨正则匹配性能
-          #    - -DBUILD_SHARED_LIBS=OFF: 强行关闭动态库，只生成静态库 (libpcre2-8.a)
-          #    - 直接注入之前拼接并格式化好的全局环境变量（包含 -march 和优化选项）
-          cmake \
-            -DCMAKE_C_COMPILER=musl-gcc \
-            -DCMAKE_CXX_COMPILER=musl-g++ \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DZLIB_INCLUDE_DIR=$GITHUB_WORKSPACE/zlib-ng/installed/include \
-            -DZLIB_LIBRARY=$GITHUB_WORKSPACE/zlib-ng/installed/lib/libz.a \
-            -DBUILD_SHARED_LIBS=OFF \
-            -DPCRE2_SUPPORT_JIT=ON \
-            -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC" \
-            -DCMAKE_INSTALL_PREFIX=../installed ..
-          
-          # 3. 编译并提取安装到 ../installed/ 目录下
-          cmake --build . --config Release -j$(nproc)
-          cmake --install .
-          cd ../..
-          
-          # ================= 最终核对与环境变量导出 =================
-          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
-          echo "📂 静态库列表："
-          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/lib"
-          echo "📂 头文件列表："
-          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/include"
-   
       - name: zstd [Static build & install with musl-gcc]
         run: |
           # 1. 检出轻量化源码并清理旧缓存
@@ -580,7 +681,48 @@ jobs:
           #cd zstd-nginx-module
           
           #cd ..
- 
+
+      - name: pcre2 [Static build with CMake]
+        env:
+          CC: musl-gcc
+          CXX: musl-g++
+        run: |
+          # 1. 克隆源码并同步子模块（JIT 引擎依赖 SLJIT 子模块，必须加 --recurse-submodules）
+          git clone --recurse-submodules https://github.com/PCRE2Project/pcre2.git
+          cd pcre2
+          
+          echo "Pcre2_Commit_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "✅ Pcre2_Commit_ID: $(git rev-parse HEAD) "
+          
+          mkdir out && cd out
+          
+          # 2. 核心优化配置：
+          #    - -DPCRE2_SUPPORT_JIT=ON: 开启硬核 JIT 即时编译支持，大幅压榨正则匹配性能
+          #    - -DBUILD_SHARED_LIBS=OFF: 强行关闭动态库，只生成静态库 (libpcre2-8.a)
+          #    - 直接注入之前拼接并格式化好的全局环境变量（包含 -march 和优化选项）
+          cmake \
+            -DCMAKE_C_COMPILER=musl-gcc \
+            -DCMAKE_CXX_COMPILER=musl-g++ \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DZLIB_INCLUDE_DIR=$GITHUB_WORKSPACE/zlib-ng/installed/include \
+            -DZLIB_LIBRARY=$GITHUB_WORKSPACE/zlib-ng/installed/lib/libz.a \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DPCRE2_SUPPORT_JIT=ON \
+            -DCMAKE_C_FLAGS="${{ env.OPTIMIZED_FLAGS }} -march=${{ env.OPTIMIZED_MARCH }} -fPIC" \
+            -DCMAKE_INSTALL_PREFIX=../installed ..
+          
+          # 3. 编译并提取安装到 ../installed/ 目录下
+          cmake --build . --config Release -j$(nproc)
+          cmake --install .
+          cd ../..
+          
+          # ================= 最终核对与环境变量导出 =================
+          echo "✅ === 检查最终生成的干净挂挂载点目录结构 ==="
+          echo "📂 静态库列表："
+          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/lib"
+          echo "📂 头文件列表："
+          ls -lh "$GITHUB_WORKSPACE/pcre2/installed/include"
+
       - name: libmaxminddb [Static build with CMake]
         env:
           CC: musl-gcc
@@ -639,7 +781,7 @@ jobs:
           echo "Commit_ID=$(git rev-parse --short HEAD) " >> $GITHUB_ENV
           
           # 顺畅拉取并应用 Dynamic TLS Record 补丁          
-          curl https://raw.githubusercontent.com/rosebe/nginx-patch/refs/heads/main/nginx_dynamic_tls_records.patch | patch --verbose -p 1
+          curl https://raw.githubusercontent.com/rosebe/nginx-quic/refs/heads/master/nginx_dynamic_tls_records.patch | patch --verbose -p 1
                     
           #cp ../nginx_dynamic_tls_records.patch ./nginx_dynamic_tls_records.patch
           #patch --verbose -p1 < nginx_dynamic_tls_records.patch
@@ -773,7 +915,7 @@ jobs:
               
       - name: Strip and Package
         run: |
-          NGINX_TEST="/home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx"
+          NGINX_TEST="$GITHUB_WORKSPACE/nginx/objs/nginx"
           
           echo "🛠️ 瘦身前："
           ls -lh $NGINX_TEST
@@ -815,9 +957,9 @@ jobs:
           # 验证是否为静态链接
           # 验证生成的二进制文件是否为“纯静态”
           echo "==== 验证二进制文件状态 ===="
-          #chmod +x /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
-          file /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
-          ldd /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx || echo "Static binary confirmed"
+          #chmod +x $GITHUB_WORKSPACE/nginx/objs/nginx
+          file $GITHUB_WORKSPACE/nginx/objs/nginx
+          ldd $GITHUB_WORKSPACE/nginx/objs/nginx || echo "Static binary confirmed"
             
       
       - name: Comprehensive Stress Testing
@@ -829,7 +971,7 @@ jobs:
             G_HOST="https://github.com"
             G_REPO="/grpc/grpc-go.git"
                       
-            NGINX_BIN="/home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx"
+            NGINX_BIN="$GITHUB_WORKSPACE/nginx/objs/nginx"
             G_WORKSPACE="${{ github.workspace }}"
 
             # 2. [环境整备]
@@ -870,9 +1012,9 @@ jobs:
            
 
             # 检测配置文件
-            sudo chmod +x /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
-            #sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -V
-            #sudo /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx -t -c /tmp/pgo-run/pgo.conf
+            sudo chmod +x $GITHUB_WORKSPACE/nginx/objs/nginx
+            #sudo $GITHUB_WORKSPACE/nginx/objs/nginx -V
+            #sudo $GITHUB_WORKSPACE/nginx/objs/nginx -t -c /tmp/pgo-run/pgo.conf
             
             # ==========================================
             # 5. [插桩启动 - 强力覆盖全局指令以规避环境冲突崩溃]
@@ -1106,8 +1248,8 @@ jobs:
       
       - uses: actions/upload-artifact@v7.0.2
         with:
-          name: nginx-patch
-          path: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
+          name: nginx-quic
+          path: $GITHUB_WORKSPACE/nginx/objs/nginx
           
       # Setting an environment variable
       # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions
@@ -1116,9 +1258,9 @@ jobs:
         id: step_one
         shell: bash
         run: |
-          echo "ASSET_NAME=nginx-quic-static v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} with-zlib-ng and ngx_http_geoip2_module Compiler-musl-gcc arch-${{ env.OPTIMIZED_MARCH }} flags${{ env.OPTIMIZED_FLAGS }} test build on ${{ env.nginx_build_time }}" >> $GITHUB_ENV
-          echo "TAG_NAME=v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
-          echo "RELEASE_NAME=nginx-patch v$(grep "#define NGINX_VERSION" /home/runner/work/nginx-patch/nginx-patch/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          echo "ASSET_NAME=nginx-quic-static v$(grep "#define NGINX_VERSION" $GITHUB_WORKSPACE/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"') ${{ env.Commit_ID }} with-zlib-ng and ngx_http_geoip2_module Compiler-musl-gcc arch-${{ env.OPTIMIZED_MARCH }} flags${{ env.OPTIMIZED_FLAGS }} test build on ${{ env.nginx_build_time }}" >> $GITHUB_ENV
+          echo "TAG_NAME=v$(grep "#define NGINX_VERSION" $GITHUB_WORKSPACE/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
+          echo "RELEASE_NAME=nginx-quic v$(grep "#define NGINX_VERSION" $GITHUB_WORKSPACE/nginx/src/core/nginx.h | awk '{print $3}' | tr -d '"')" >> $GITHUB_ENV
           
           echo "TAG_NAME: "
           echo "${{ env.TAG_NAME }}"
@@ -1153,8 +1295,9 @@ jobs:
           
           echo "$(tree -d)"
           
+      
       - name: Upload binaries to release
-        #uses: svenstaro/upload-release-action@e2a63377780a8bacc68dcac9b0979ee20ad5a791
+        #uses: svenstaro/upload-release-action@1b2bf5c959aebf44ffded0b72f8bdc5737400da1
         uses: svenstaro/upload-release-action@2.11.5
         #if: github.event_name == 'release'
         if: ${{ github.event.inputs.Upload_Binaries_To_Release == 'true' }}
@@ -1163,19 +1306,15 @@ jobs:
           tag: ${{ env.TAG_NAME }}
           release_name: ${{ env.RELEASE_NAME }}
           asset_name: ${{ env.ASSET_NAME }}
-          file: /home/runner/work/nginx-patch/nginx-patch/nginx/objs/nginx
-          body: "### Happy play for CentOS 6.X
-
-                - [ ] compile (-static)
-                
-                `>  ldd nginx-patch-static.v1.xx.x.build.on.202x_x_x-x.x.x` 
-                
-                `>  not a dynamic executable`
-
-                - [ ] nginx configer 
-                
-                `>  nginx -V`"
-                
-          overwrite: false
-          file_glob: false
-          
+          file: $GITHUB_WORKSPACE/nginx/objs/nginx
+          body: |
+            ### Nginx-Quic Build  
+            ### Happy play !
+            - **Commit ID**: ${{ env.Commit_ID }}
+            - **Openssl_Commit_ID**: ${{ env.Openssl_Commit_ID }}
+            - **Optimization**: PGO (Profile Guided Optimization) Disabled.
+            - **Arch**: x86-64-v4(avx512)  x86-64-v3(avx2)
+            - **Static**: All libraries linked statically.
+            - **Modules**: Brotli, GeoIP2, OpenSSL/kTLS ,Zlib-ng.
+          overwrite: true
+          file_glob: false   
