@@ -1102,6 +1102,8 @@ jobs:
             echo "===== Runtime CPU ====="
             lscpu
             
+      - name: GITHUB_WORKSPACE_LOCAL=$GITHUB_WORKSPACE 
+        run: |
             echo ""
             echo "GITHUB_WORKSPACE_LOCAL=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       
